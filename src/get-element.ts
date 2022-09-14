@@ -1,5 +1,5 @@
-type NodeOrDocument = Document | ParentNode;
 type Parent = Document | ParentNode | string;
+type NodeOrDocument = Document | ParentNode;
 
 /**
  * @author princemuel
@@ -40,7 +40,6 @@ function getScope(node: Parent | string) {
     }
     return node;
   } catch (error) {
-    console.log(error);
     throw new Error(
       `There is an error. Check if the selector "${node}" is correct.`
     );
