@@ -1,14 +1,6 @@
-function hideContent(parent: ParentNode, content: string) {
-  parent
-    .querySelectorAll(content)!
-    .forEach((item) => item.setAttribute('hidden', 'true'));
-}
-
-const showContent = (parent: ParentNode, content: string) => {
-  parent.querySelector(content)!.removeAttribute('hidden');
-};
-
 type NodeOrDocument = Document | ParentNode;
+type Parent = Document | ParentNode | string;
+
 /**
  * @author princemuel
  * @example
@@ -17,32 +9,20 @@ type NodeOrDocument = Document | ParentNode;
  * getElement<HTMLButtonElement>('.tabBtn', '.container', true)
  */
 
+function getElement<T extends Element>(selector: string, scope: Parent): T;
 function getElement<T extends Element>(
   selector: string,
-  scope: NodeOrDocument
-): T;
-function getElement<T extends Element>(
-  selector: string,
-  scope: NodeOrDocument,
-  isElementArray: true
-): T[];
-function getElement<T extends Element>(
-  selector: string,
-  scope: NodeOrDocument,
-  isElementArray: false
-): T;
-function getElement<T extends Element>(
-  selector: string,
-  scope: NodeOrDocument,
+  scope: Parent,
   isElementArray?: boolean
 ): T | T[] {
   try {
+    const node = getScope(scope);
     if (isElementArray) {
-      const element = [...scope.querySelectorAll(selector)] as T[];
+      const element = [...node.querySelectorAll(selector)] as T[];
       if (element.length < 1) throw Error;
       return element;
     } else {
-      const element = scope.querySelector(selector) as T;
+      const element = node.querySelector(selector) as T;
       if (!element) throw Error;
       return element;
     }
@@ -53,4 +33,18 @@ function getElement<T extends Element>(
   }
 }
 
-export { getElement, showContent, hideContent };
+function getScope(node: Parent | string) {
+  try {
+    if (typeof node === 'string') {
+      return document.querySelector(node) as NodeOrDocument;
+    }
+    return node;
+  } catch (error) {
+    console.log(error);
+    throw new Error(
+      `There is an error. Check if the selector "${node}" is correct.`
+    );
+  }
+}
+
+export { getElement };
