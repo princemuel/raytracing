@@ -5,11 +5,22 @@ type NodeOrDocument = Document | ParentNode;
  * @author princemuel
  * @example
  * getElement<HTMLButtonElement>('.tabBtn', '.container')
- * getElement<HTMLButtonElement>('.tabBtn', '.container', false)
+ * getElement<HTMLButtonElement>('.tabBtn', document)
+ * getElement<HTMLButtonElement>('.tabBtn', document, false)
  * getElement<HTMLButtonElement>('.tabBtn', '.container', true)
  */
 
 function getElement<T extends Element>(selector: string, scope: Parent): T;
+function getElement<T extends Element>(
+  selector: string,
+  scope: Parent,
+  isElementArray: false
+): T;
+function getElement<T extends Element>(
+  selector: string,
+  scope: Parent,
+  isElementArray: true
+): T[];
 function getElement<T extends Element>(
   selector: string,
   scope: Parent,

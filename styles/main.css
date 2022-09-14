@@ -208,12 +208,10 @@ p[data-width='wide'] {
   gap: clamp(var(--size-400), 5vw, var(--size-700));
   font-weight: var(--fw-semi-bold);
 }
-
 .nav-list a {
   text-decoration: none;
   color: var(--clr-primary-400);
 }
-
 .nav-list a:hover,
 .nav-list a:focus {
   color: var(--clr-accent-400);
@@ -223,6 +221,7 @@ p[data-width='wide'] {
   .primary-navigation {
     display: none;
 
+    /* position: absolute; */
     position: fixed;
     padding: var(--size-700);
     inset: 7rem var(--size-400) auto;

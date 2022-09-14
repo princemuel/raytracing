@@ -1,11 +1,12 @@
 import { getElement } from './get-element';
 
-const primaryHeader = getElement('.primary-header', document);
+const primaryHeader = getElement<HTMLElement>('.primary-header', document);
 const navToggle = getElement(
   '.mobile-nav-toggle',
   document
 ) as HTMLButtonElement;
-const primaryNav = getElement('.primary-navigation', document);
+const primaryNav = getElement('.primary-navigation', document) as HTMLElement;
+const slide = getElement('.slider', document) as HTMLUListElement;
 
 navToggle.addEventListener('click', () => {
   primaryNav.hasAttribute('data-visible')
@@ -16,7 +17,7 @@ navToggle.addEventListener('click', () => {
 });
 
 // @ts-expect-error
-const slider = new A11YSlider(getElement('.slider', document), {
+const slider = new A11YSlider(slide, {
   adaptiveHeight: false,
   dots: true,
   centerMode: true,
