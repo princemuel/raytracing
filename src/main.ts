@@ -7,6 +7,12 @@ const navToggle = getElement(
 ) as HTMLButtonElement;
 const primaryNav = getElement('.primary-navigation', document) as HTMLElement;
 const slide = getElement('.slider', document) as HTMLUListElement;
+const timeElement = getElement('[data-time]', document) as HTMLTimeElement;
+
+const year = new Date().getFullYear().toString();
+
+timeElement.dateTime = year;
+timeElement.innerText = year;
 
 navToggle.addEventListener('click', () => {
   primaryNav.hasAttribute('data-visible')
