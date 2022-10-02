@@ -1,10 +1,13 @@
 :root {
-  --clr-accent-400: hsl(12 88% 59%);
-  --clr-accent-100: hsl(13 100% 96%);
+  --clr-accent-500: hsl(12, 60%, 45%);
+  --clr-accent-400: hsl(12, 88%, 59%);
+  --clr-accent-300: hsl(12, 88%, 75%);
+  --clr-accent-100: hsl(13, 100%, 96%);
 
-  --clr-primary-400: hsl(228 39% 23%);
+  --clr-primary-400: hsl(228, 39%, 23%);
 
-  --clr-neutral-900: hsl(232 12% 13%);
+  --clr-neutral-900: hsl(232, 12%, 13%);
+  --clr-neutral-200: hsl(0 0% 97%);
   --clr-neutral-100: hsl(0 0% 100%);
 
   --ff-primary: 'Be Vietnam Pro', sans-serif;
@@ -12,13 +15,9 @@
   --ff-body: var(--ff-primary);
   --ff-heading: var(--ff-primary);
 
-  --fw-400: 400;
-  --fw-500: 500;
-  --fw-700: 700;
-
-  --fw-regular: var(--fw-400);
-  --fw-semi-bold: var(--fw-500);
-  --fw-bold: var(--fw-700);
+  --fw-regular: 400;
+  --fw-semi-bold: 500;
+  --fw-bold: 700;
 
   --fs-300: 0.8125rem;
   --fs-400: 0.875rem;
@@ -69,7 +68,6 @@ html {
 *::after {
   box-sizing: inherit;
 }
-
 /* Remove default margin */
 * {
   margin: 0;
@@ -208,10 +206,12 @@ p[data-width='wide'] {
   gap: clamp(var(--size-400), 5vw, var(--size-700));
   font-weight: var(--fw-semi-bold);
 }
+
 .nav-list a {
   text-decoration: none;
   color: var(--clr-primary-400);
 }
+
 .nav-list a:hover,
 .nav-list a:focus {
   color: var(--clr-accent-400);
@@ -221,7 +221,6 @@ p[data-width='wide'] {
   .primary-navigation {
     display: none;
 
-    /* position: absolute; */
     position: fixed;
     padding: var(--size-700);
     inset: 7rem var(--size-400) auto;
@@ -552,7 +551,7 @@ input:where([type='text'], [type='email'], ) {
 }
 
 .container {
-  --max-width: 1110px; /* change to rem */
+  --max-width: 1110px;
   --container-padding: 1rem;
 
   width: min(var(--max-width), 100% - (var(--container-padding) * 2));
