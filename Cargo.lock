@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "rtc_oneweek"
+name = "rtc"
 version = "0.1.0"
