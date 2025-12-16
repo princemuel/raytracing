@@ -1,6 +1,12 @@
-[package]
-  name = "rtc"
-  version = "0.1.0"
+#:schema https://www.schemastore.org/cargo.json
+# https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions
+[workspace]
+members  = ["crates/*"]
+resolver = "3"
+  [workspace.package]
+  authors = ["Prince Muel <68931805+princemuel@users.noreply.github.com>"]
   edition = "2024"
-
-[dependencies]
+  version = "0.1.0"
+  [workspace.dependencies]
+  engine = { path = "crates/core" }
+  rand   = "0.9"

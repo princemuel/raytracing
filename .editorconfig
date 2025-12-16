@@ -22,8 +22,15 @@ max_line_length = 96
 [*.rs]
 indent_size = 4
 
+[{*.c,*.h,*.cpp,*.hpp,*.cc,*.cxx,*.hh,*.hxx}]
+indent_size = 4
+
 # Java and JVM languages - 4 spaces
 [{*.java,*.kt,*.kts,*.scala,*.groovy,*.gradle}]
+indent_size = 4
+
+# Scripts
+[*.sh]
 indent_size = 4
 
 # Go - tabs (idiomatic Go style)
