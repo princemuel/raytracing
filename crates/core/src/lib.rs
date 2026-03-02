@@ -5,13 +5,20 @@
 //! ## Quick Start
 //!
 //! ```rust
-//! use rtc::prelude::*;
+//! use rtc_core::prelude::*;
 //! ```
 #![warn(clippy::pedantic)]
-mod cmp;
+#![warn(clippy::ptr_arg)]
+#![warn(clippy::use_self)]
+#![warn(clippy::suspicious)]
+#![warn(clippy::perf)]
+#![feature(const_range)]
+#![feature(const_trait_impl)]
+
 mod interval;
 
 pub mod color;
 pub mod geometry;
+pub mod material;
 pub mod prelude;
 pub mod ray;

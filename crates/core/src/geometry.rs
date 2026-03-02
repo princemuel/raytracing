@@ -1,6 +1,8 @@
 use core::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use rtc_shared::Real;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Axis {
     X,
     Y,
@@ -8,7 +10,7 @@ pub enum Axis {
 }
 
 impl Axis {
-    pub const ALL: [Axis; 3] = [Axis::X, Axis::Y, Axis::Z];
+    pub const ALL: [Self; 3] = [Self::X, Self::Y, Self::Z];
 
     #[must_use]
     pub const fn next(self) -> Self {
@@ -20,20 +22,20 @@ impl Axis {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq)]
-pub struct Vec3(f32, f32, f32);
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Vec3(Real, Real, Real);
 
 impl Vec3 {
     #[must_use]
-    pub const fn new(e0: f32, e1: f32, e2: f32) -> Self { Self(e0, e1, e2) }
+    pub const fn new(e0: Real, e1: Real, e2: Real) -> Self { Self(e0, e1, e2) }
 
     /// Creates a vector with all elements set to `value`.
     #[must_use]
-    pub const fn splat(value: f32) -> Self { Self(value, value, value) }
+    pub const fn splat(value: Real) -> Self { Self(value, value, value) }
 
     /// Alternative to using the i
     #[must_use]
-    pub const fn get(&self, axis: Axis) -> f32 {
+    pub const fn get(&self, axis: Axis) -> Real {
         match axis {
             Axis::X => self.0,
             Axis::Y => self.1,
@@ -42,28 +44,28 @@ impl Vec3 {
     }
 
     #[must_use]
-    pub const fn x(&self) -> f32 { self.0 }
+    pub const fn x(&self) -> Real { self.0 }
 
     #[must_use]
-    pub const fn y(&self) -> f32 { self.1 }
+    pub const fn y(&self) -> Real { self.1 }
 
     #[must_use]
-    pub const fn z(&self) -> f32 { self.2 }
+    pub const fn z(&self) -> Real { self.2 }
 }
 
 impl Vec3 {
     /// The unit axes.
     pub const AXES: [Self; 3] = [Self::X, Self::Y, Self::Z];
-    /// All `f32::INFINITY`.
-    pub const INFINITY: Self = Self::splat(f32::INFINITY);
-    /// All `f32::MAX`.
-    pub const MAX: Self = Self::splat(f32::MAX);
-    /// All `f32::MIN`.
-    pub const MIN: Self = Self::splat(f32::MIN);
-    /// All `f32::NAN`.
-    pub const NAN: Self = Self::splat(f32::NAN);
-    /// All `f32::NEG_INFINITY`.
-    pub const NEG_INFINITY: Self = Self::splat(f32::NEG_INFINITY);
+    /// All `Real::INFINITY`.
+    pub const INFINITY: Self = Self::splat(Real::INFINITY);
+    /// All `Real::MAX`.
+    pub const MAX: Self = Self::splat(Real::MAX);
+    /// All `Real::MIN`.
+    pub const MIN: Self = Self::splat(Real::MIN);
+    /// All `Real::NAN`.
+    pub const NAN: Self = Self::splat(Real::NAN);
+    /// All `Real::NEG_INFINITY`.
+    pub const NEG_INFINITY: Self = Self::splat(Real::NEG_INFINITY);
     /// All negative ones.
     pub const NEG_ONE: Self = Self::splat(-1.0);
     /// A unit vector pointing along the negative X axis.
@@ -86,12 +88,12 @@ impl Vec3 {
 
 impl Vec3 {
     #[must_use]
-    pub fn length(&self) -> f32 { f32::sqrt(self.length_squared()) }
+    pub fn length(&self) -> Real { Real::sqrt(self.length_squared()) }
 
-    const fn length_squared(&self) -> f32 { self.0 * self.0 + self.1 * self.1 + self.2 * self.2 }
+    const fn length_squared(&self) -> Real { self.0 * self.0 + self.1 * self.1 + self.2 * self.2 }
 
     #[must_use]
-    pub fn dot(&self, rhs: Self) -> f32 { self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2 }
+    pub fn dot(&self, rhs: Self) -> Real { self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2 }
 
     #[must_use]
     pub fn cross(&self, rhs: Self) -> Self {
@@ -116,7 +118,7 @@ impl core::fmt::Display for Vec3 {
 }
 
 impl Index<usize> for Vec3 {
-    type Output = f32;
+    type Output = Real;
 
     fn index(&self, i: usize) -> &Self::Output {
         match i {
@@ -171,20 +173,20 @@ impl Mul for Vec3 {
     fn mul(self, rhs: Self) -> Self::Output { Self::new(self.0 * rhs.0, self.1 * rhs.1, self.2 * rhs.2) }
 }
 
-impl Mul<Vec3> for f32 {
+impl Mul<Vec3> for Real {
     type Output = Vec3;
 
     fn mul(self, rhs: Vec3) -> Self::Output { Vec3::new(self * rhs.0, self * rhs.1, self * rhs.2) }
 }
 
-impl Mul<f32> for Vec3 {
+impl Mul<Real> for Vec3 {
     type Output = Self;
 
-    fn mul(self, rhs: f32) -> Self::Output { rhs * self }
+    fn mul(self, rhs: Real) -> Self::Output { rhs * self }
 }
 
-impl MulAssign<f32> for Vec3 {
-    fn mul_assign(&mut self, rhs: f32) {
+impl MulAssign<Real> for Vec3 {
+    fn mul_assign(&mut self, rhs: Real) {
         self.0 *= rhs;
         self.1 *= rhs;
         self.2 *= rhs;
@@ -197,12 +199,12 @@ impl Div for Vec3 {
     fn div(self, rhs: Self) -> Self::Output { Self::new(self.0 / rhs.0, self.1 / rhs.1, self.2 / rhs.2) }
 }
 
-impl Div<f32> for Vec3 {
+impl Div<Real> for Vec3 {
     type Output = Self;
 
-    fn div(self, rhs: f32) -> Self { (1.0 / rhs) * self }
+    fn div(self, rhs: Real) -> Self { (1.0 / rhs) * self }
 }
 
-impl DivAssign<f32> for Vec3 {
-    fn div_assign(&mut self, rhs: f32) { *self *= 1.0 / rhs; }
+impl DivAssign<Real> for Vec3 {
+    fn div_assign(&mut self, rhs: Real) { *self *= 1.0 / rhs; }
 }

@@ -1,5 +1,6 @@
-use crate::prelude::{Point3, Vec3};
+use rtc_shared::Real;
 
+use crate::prelude::{Point3, Vec3};
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Ray(Point3, Vec3);
 
@@ -14,5 +15,5 @@ impl Ray {
     pub const fn direction(&self) -> Vec3 { self.1 }
 
     #[must_use]
-    pub fn at(&self, t: f32) -> Point3 { self.origin() + t * self.direction() }
+    pub fn at(&self, t: Real) -> Point3 { self.origin() + t * self.direction() }
 }

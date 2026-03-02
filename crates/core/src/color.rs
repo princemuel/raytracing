@@ -2,26 +2,28 @@ use core::iter::{Product, Sum};
 use core::ops::{Add, Div, Mul, Sub};
 use std::io::{self, Write};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Color3(f32, f32, f32);
+use rtc_shared::Real;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Color3(Real, Real, Real);
 
 impl Color3 {
     /// Creates a new color.
     #[must_use]
-    pub const fn new(e0: f32, e1: f32, e2: f32) -> Self { Self(e0, e1, e2) }
+    pub const fn new(e0: Real, e1: Real, e2: Real) -> Self { Self(e0, e1, e2) }
 
     /// Creates a color with all elements set to `value`.
     #[must_use]
-    pub const fn splat(value: f32) -> Self { Self(value, value, value) }
+    pub const fn splat(value: Real) -> Self { Self(value, value, value) }
 
     #[must_use]
-    pub const fn r(&self) -> f32 { self.0 }
+    pub const fn r(&self) -> Real { self.0 }
 
     #[must_use]
-    pub const fn g(&self) -> f32 { self.1 }
+    pub const fn g(&self) -> Real { self.1 }
 
     #[must_use]
-    pub const fn b(&self) -> f32 { self.2 }
+    pub const fn b(&self) -> Real { self.2 }
 }
 
 impl Color3 {
@@ -51,8 +53,6 @@ impl Color3 {
     pub const YELLOW: Self = Self::new(1.0, 1.0, 0.0);
 }
 
-impl Color3 {}
-
 impl Default for Color3 {
     fn default() -> Self { Self::BLACK }
 }
@@ -60,7 +60,7 @@ impl Default for Color3 {
 impl core::fmt::Display for Color3 {
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        const FLOAT_TO_BYTE_SCALE: f32 = 256.0;
+        const FLOAT_TO_BYTE_SCALE: Real = 256.0;
 
         let r = (self.r().clamp(0.0, 0.999) * FLOAT_TO_BYTE_SCALE) as u8;
         let g = (self.g().clamp(0.0, 0.999) * FLOAT_TO_BYTE_SCALE) as u8;
@@ -82,13 +82,13 @@ impl Sub for Color3 {
     fn sub(self, rhs: Self) -> Self::Output { Self::new(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2) }
 }
 
-impl Mul<f32> for Color3 {
+impl Mul<Real> for Color3 {
     type Output = Self;
 
-    fn mul(self, rhs: f32) -> Self::Output { rhs * self }
+    fn mul(self, rhs: Real) -> Self::Output { rhs * self }
 }
 
-impl Mul<Color3> for f32 {
+impl Mul<Color3> for Real {
     type Output = Color3;
 
     fn mul(self, rhs: Color3) -> Self::Output { Color3::new(self * rhs.0, self * rhs.1, self * rhs.2) }
@@ -126,8 +126,8 @@ impl Product for Color3 {
     }
 }
 
-const BYTE_TO_FLOAT_SCALE: f32 = 1.0 / 255.0;
-const FLOAT_TO_BYTE_SCALE: f32 = 256.0;
+const BYTE_TO_FLOAT_SCALE: Real = 1.0 / 255.0;
+const FLOAT_TO_BYTE_SCALE: Real = 256.0;
 
 impl From<(u8, u8, u8)> for Color3 {
     fn from((r, g, b): (u8, u8, u8)) -> Self { Self::from([r, g, b]) }
@@ -135,7 +135,7 @@ impl From<(u8, u8, u8)> for Color3 {
 
 impl From<[u8; 3]> for Color3 {
     fn from(rgb: [u8; 3]) -> Self {
-        let [r, g, b] = rgb.map(|c| f32::from(c) * BYTE_TO_FLOAT_SCALE);
+        let [r, g, b] = rgb.map(|c| Real::from(c) * BYTE_TO_FLOAT_SCALE);
         Self::new(r, g, b)
     }
 }
@@ -157,9 +157,9 @@ impl TryFrom<[u8; 7]> for Color3 {
             return Err(format!("Hex color must start with '#', got: {src}"));
         }
 
-        let parse_hex = |s: &str, c: &str| {
+        let parse_hex = |s, c| {
             u8::from_str_radix(s, 16)
-                .map(|v| f32::from(v) / 255.0)
+                .map(|v| Real::from(v) / 255.0)
                 .map_err(|_| format!("Invalid {c} component '{s}' (expected 00-FF)"))
         };
 
@@ -181,7 +181,7 @@ pub fn _write_colors_batch<W: Write>(out: &mut W, colors: &[Color3]) -> io::Resu
 
     for color in colors {
         use std::fmt::Write as _;
-        writeln!(&mut buffer, "{color}",).unwrap();
+        writeln!(&mut buffer, "{color}").unwrap();
     }
 
     out.write_all(buffer.as_bytes())
