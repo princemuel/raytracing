@@ -9,13 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
-name = "engine"
-version = "0.1.0"
-dependencies = [
- "rand",
-]
-
-[[package]]
 name = "getrandom"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -94,6 +87,26 @@ checksum = "99d9a13982dcf210057a8a78572b2217b667c3beacbf3a0d8b454f6f82837d38"
 dependencies = [
  "getrandom",
 ]
+
+[[package]]
+name = "rtc_cmp"
+version = "0.1.0"
+dependencies = [
+ "rtc_shared",
+]
+
+[[package]]
+name = "rtc_core"
+version = "0.1.0"
+dependencies = [
+ "rand",
+ "rtc_cmp",
+ "rtc_shared",
+]
+
+[[package]]
+name = "rtc_shared"
+version = "0.1.0"
 
 [[package]]
 name = "syn"

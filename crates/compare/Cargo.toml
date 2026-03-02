@@ -1,10 +1,8 @@
 [package]
 authors.workspace = true
 edition.workspace = true
-name              = "rtc_core"
+name              = "rtc_cmp"
 version.workspace = true
 
 [dependencies]
-rand.workspace       = true
-rtc_cmp.workspace    = true
 rtc_shared.workspace = true
