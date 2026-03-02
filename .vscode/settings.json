@@ -9,7 +9,8 @@
     "source.organizeImports": "explicit",
     "source.addMissingImports": "explicit"
   },
-  // Rust Analyzer settings
+ // Rust Analyzer settings
+  "rust-analyzer.rustc.source": "discover",
   "rust-analyzer.assist.preferSelf": true,
   "rust-analyzer.assist.emitMustUse": true,
   // Cargo
@@ -38,7 +39,6 @@
   },
   "rust-analyzer.testExplorer": true,
   "rust-analyzer.semanticHighlighting.punctuation.enable": true,
-  "markdown.validate.enabled": true,
   "workbench.editor.customLabels.patterns": {
     "**/mod.rs": "${dirname}.rs"
   }
