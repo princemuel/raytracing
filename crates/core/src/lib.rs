@@ -14,6 +14,7 @@
 #![warn(clippy::perf)]
 #![feature(const_range)]
 #![feature(const_trait_impl)]
+// #![feature(const_ops)]
 
 mod interval;
 

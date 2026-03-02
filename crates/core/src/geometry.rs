@@ -8,7 +8,6 @@ pub enum Axis {
     Y,
     Z,
 }
-
 impl Axis {
     pub const ALL: [Self; 3] = [Self::X, Self::Y, Self::Z];
 
@@ -22,9 +21,20 @@ impl Axis {
     }
 }
 
+/// Creates a 3-dimensional vector.
+#[inline(always)]
+#[must_use]
+pub fn vec3<X, Y, Z>(x: X, y: Y, z: Z) -> Vec3
+where
+    X: Into<Real>,
+    Y: Into<Real>,
+    Z: Into<Real>,
+{
+    Vec3::new(x.into(), y.into(), z.into())
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Vec3(Real, Real, Real);
-
 impl Vec3 {
     #[must_use]
     pub const fn new(e0: Real, e1: Real, e2: Real) -> Self { Self(e0, e1, e2) }
@@ -33,8 +43,7 @@ impl Vec3 {
     #[must_use]
     pub const fn splat(value: Real) -> Self { Self(value, value, value) }
 
-    /// Alternative to using the i
-    #[must_use]
+    /// Alternative to using the index
     pub const fn get(&self, axis: Axis) -> Real {
         match axis {
             Axis::X => self.0,
@@ -43,13 +52,10 @@ impl Vec3 {
         }
     }
 
-    #[must_use]
     pub const fn x(&self) -> Real { self.0 }
 
-    #[must_use]
     pub const fn y(&self) -> Real { self.1 }
 
-    #[must_use]
     pub const fn z(&self) -> Real { self.2 }
 }
 
@@ -87,13 +93,11 @@ impl Vec3 {
 }
 
 impl Vec3 {
-    #[must_use]
     pub fn length(&self) -> Real { Real::sqrt(self.length_squared()) }
 
     const fn length_squared(&self) -> Real { self.0 * self.0 + self.1 * self.1 + self.2 * self.2 }
 
-    #[must_use]
-    pub fn dot(&self, rhs: Self) -> Real { self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2 }
+    pub const fn dot(&self, rhs: Self) -> Real { self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2 }
 
     #[must_use]
     pub fn cross(&self, rhs: Self) -> Self {
@@ -108,12 +112,22 @@ impl Vec3 {
     pub fn unit(&self) -> Self { *self / self.length() }
 }
 
+/// Create a 3-dimensional point
+#[inline]
+pub fn point3<X, Y, Z>(x: X, y: Y, z: Z) -> Point3
+where
+    X: Into<Real>,
+    Y: Into<Real>,
+    Z: Into<Real>,
+{
+    Point3::new(x.into(), y.into(), z.into())
+}
 pub type Point3 = Vec3;
 
 impl core::fmt::Display for Vec3 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let p = f.precision().unwrap_or(3);
-        write!(f, "[{:.p$}, {:.p$}, {:.p$}]", self.x(), self.y(), self.z())
+        write!(f, "{:.p$} {:.p$} {:.p$}]", self.x(), self.y(), self.z())
     }
 }
 

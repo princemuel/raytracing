@@ -1,6 +1,7 @@
 use std::io;
 use std::io::Write;
 
+use rtc_core::prelude::*;
 use rtc_shared::Real;
 
 fn main() -> io::Result<()> {
@@ -21,13 +22,9 @@ fn main() -> io::Result<()> {
             let g = j as Real / (image_height - 1) as Real;
             let b = 0.0;
 
-            // Translate the [0,1] component values to the byte range [0,255]
-            let ir = (255.999 * r) as i32;
-            let ig = (255.999 * g) as i32;
-            let ib = (255.999 * b) as i32;
+            let color = color(r, g, b);
 
-            // Write out the pixel color components
-            println!("{ir} {ig} {ib}");
+            writeln!(&mut io::stdout(), "{color}")?;
         }
     }
 

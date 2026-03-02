@@ -3,6 +3,9 @@
 #![warn(clippy::use_self)]
 #![warn(clippy::suspicious)]
 #![warn(clippy::perf)]
+#![feature(const_trait_impl)]
+#![feature(const_cmp)]
+#![feature(const_ops)]
 
 use rtc_shared::{EPSILON, Real};
 
@@ -33,7 +36,8 @@ pub const fn approx_eq_abs(x: Real, y: Real, tolerance: Real) -> bool {
         return false;
     }
 
-    (x - y).abs() <= tolerance
+    let delta = (x - y).abs();
+    delta <= tolerance
 }
 
 /// Performs an approximate comparison of two floating point values `x` and `y`.
@@ -64,7 +68,10 @@ pub const fn approx_eq_rel(x: Real, y: Real, tolerance: Real) -> bool {
         return false;
     }
 
-    (x - y).abs() <= x.abs().max(y.abs()) * tolerance
+    let scale = x.abs().max(y.abs());
+    let delta = (x - y).abs();
+
+    delta <= scale * tolerance
 }
 
 /// Compares two Real values for approximate equality using adaptive epsilon
@@ -109,6 +116,8 @@ pub const fn approx_equal_fl(x: Real, y: Real) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use rtc_shared::{EPSILON, Real};
+
     use super::*;
 
     #[test]
@@ -230,7 +239,6 @@ mod tests {
         // defined layout so we can't rely on `@bitCast` to construct the smallest
         // possible epsilon value like we do in the tests above. In the same vein, we
         // also can't represent a max/min, `NaN` or `Inf` values.
-        const EPSILON: Real = 1e-4;
 
         assert!(approx_eq_abs(0.0, 0.0, EPSILON));
         assert!(approx_eq_abs(-0.0, -0.0, EPSILON));

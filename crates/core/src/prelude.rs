@@ -1,2 +1,3 @@
-pub use crate::color::Color3;
-pub use crate::geometry::{Point3, Vec3};
+pub use crate::color::{Color3, color};
+pub use crate::geometry::{Point3, Vec3, point3, vec3};
+pub use crate::ray::Ray;

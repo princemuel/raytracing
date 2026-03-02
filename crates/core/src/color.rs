@@ -4,6 +4,17 @@ use std::io::{self, Write};
 
 use rtc_shared::Real;
 
+/// Creates a color
+#[inline]
+pub fn color<R, G, B>(r: R, g: G, b: B) -> Color3
+where
+    R: Into<Real>,
+    G: Into<Real>,
+    B: Into<Real>,
+{
+    Color3::new(r.into(), g.into(), b.into())
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Color3(Real, Real, Real);
 
