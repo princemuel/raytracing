@@ -2,6 +2,16 @@ use core::ops::RangeInclusive;
 
 use rtc_shared::Real;
 
+/// Creates a color
+#[inline]
+pub fn interval<MIN, MAX>(min: MIN, max: MAX) -> Interval
+where
+    MIN: Into<Real>,
+    MAX: Into<Real>,
+{
+    Interval::new(min.into(), max.into())
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Interval(RangeInclusive<Real>);
 impl Interval {

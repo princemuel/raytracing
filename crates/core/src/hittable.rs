@@ -2,11 +2,10 @@ use std::sync::Arc;
 
 use rtc_shared::Real;
 
-use crate::prelude::{Point3, Vec3};
-use crate::ray::Ray;
+use crate::prelude::{Interval, Point3, Ray, Vec3, interval};
 
 pub trait Hittable {
-    fn hit(&self, ray: Ray, tmin: Real, tmax: Real, hit_record: &mut HitRecord) -> bool;
+    fn hit(&self, ray: Ray, t: Interval, hit_record: &mut HitRecord) -> bool;
 }
 
 #[derive(Clone)]
@@ -23,13 +22,13 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, ray: Ray, tmin: Real, tmax: Real, hit_record: &mut HitRecord) -> bool {
+    fn hit(&self, ray: Ray, t: Interval, hit_record: &mut HitRecord) -> bool {
         let mut record = HitRecord::new();
         let mut hit_anything = false;
-        let mut closest_so_far = tmax;
+        let mut closest_so_far = t.max();
 
         for object in self.objects() {
-            if object.hit(ray, tmin, closest_so_far, &mut record) {
+            if object.hit(ray, interval(t.min(), closest_so_far), &mut record) {
                 hit_anything = true;
                 closest_so_far = record.t();
                 *hit_record = record.clone()

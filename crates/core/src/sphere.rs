@@ -1,6 +1,6 @@
 use rtc_shared::Real;
 
-use crate::prelude::{HitRecord, Hittable, Point3};
+use crate::prelude::{HitRecord, Hittable, Interval, Point3};
 use crate::ray::Ray;
 
 pub struct Sphere(Point3, Real);
@@ -14,7 +14,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: Ray, tmin: Real, tmax: Real, hit_record: &mut HitRecord) -> bool {
+    fn hit(&self, ray: Ray, t: Interval, hit_record: &mut HitRecord) -> bool {
         let origin_center = self.center() - ray.origin();
 
         let a = ray.direction().length_squared();
@@ -31,9 +31,9 @@ impl Hittable for Sphere {
 
         // Find the nearest root that lies in the acceptable range
         let mut root = (h - sqrtd) / a;
-        if root <= tmin || tmax <= root {
+        if !t.surrounds(root) {
             root = (h + sqrtd) / a;
-            if root <= tmin || tmax <= root {
+            if !t.surrounds(root) {
                 return false;
             }
         };

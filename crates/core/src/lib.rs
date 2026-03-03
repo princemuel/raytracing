@@ -16,11 +16,10 @@
 #![feature(const_trait_impl)]
 #![feature(const_ops)]
 
-mod interval;
-
 pub mod color;
 pub mod geometry;
 pub mod hittable;
+pub mod interval;
 pub mod material;
 pub mod prelude;
 pub mod ray;

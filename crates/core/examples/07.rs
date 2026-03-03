@@ -54,7 +54,7 @@ fn main() -> io::Result<()> {
             let color = {
                 let mut hit_record = HitRecord::new();
 
-                if world.hit(ray, 0.0, INFINITY, &mut hit_record) {
+                if world.hit(ray, interval(0, INFINITY), &mut hit_record) {
                     0.5 * (Color3::WHITE + hit_record.normal())
                 } else {
                     let unit_direction = ray.direction().unit();
