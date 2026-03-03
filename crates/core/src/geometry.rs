@@ -95,7 +95,7 @@ impl Vec3 {
 impl Vec3 {
     pub fn length(&self) -> Real { Real::sqrt(self.length_squared()) }
 
-    const fn length_squared(&self) -> Real { self.0 * self.0 + self.1 * self.1 + self.2 * self.2 }
+    pub const fn length_squared(&self) -> Real { self.0 * self.0 + self.1 * self.1 + self.2 * self.2 }
 
     pub const fn dot(&self, rhs: Self) -> Real { self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2 }
 

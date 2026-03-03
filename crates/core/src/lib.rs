@@ -20,6 +20,8 @@ mod interval;
 
 pub mod color;
 pub mod geometry;
+pub mod hittable;
 pub mod material;
 pub mod prelude;
 pub mod ray;
+pub mod sphere;
