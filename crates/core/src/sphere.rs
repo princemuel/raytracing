@@ -40,7 +40,8 @@ impl Hittable for Sphere {
 
         hit_record.set_t(root);
         hit_record.set_p(ray.at(hit_record.t()));
-        hit_record.set_normal((hit_record.p() - self.center()) / self.radius());
+        let outward_normal = (hit_record.p() - self.center()) / self.radius();
+        hit_record.set_face_normal(ray, outward_normal);
 
         true
     }

@@ -13,6 +13,9 @@ pub type Real = f64;
 
 pub const EPSILON: Real = 1e-4;
 
+pub const INFINITY: Real = Real::INFINITY;
+pub const PI: Real = f64::consts::PI;
+
 // pub const trait FloatLike:
 //     Copy
 //     + [const] core::cmp::PartialOrd

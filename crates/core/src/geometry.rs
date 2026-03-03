@@ -175,7 +175,7 @@ impl Sub for Vec3 {
     fn sub(self, rhs: Self) -> Self::Output { Self::new(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2) }
 }
 
-impl Neg for Vec3 {
+impl const Neg for Vec3 {
     type Output = Self;
 
     fn neg(self) -> Self::Output { Self::new(-self.0, -self.1, -self.2) }
