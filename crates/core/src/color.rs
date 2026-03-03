@@ -4,6 +4,8 @@ use std::io::{self, Write};
 
 use rtc_shared::Real;
 
+use crate::prelude::Vec3;
+
 /// Creates a color
 #[inline]
 pub fn color<R, G, B>(r: R, g: G, b: B) -> Color3
@@ -85,6 +87,14 @@ impl Add for Color3 {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output { Self::new(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2) }
+}
+
+impl Add<Vec3> for Color3 {
+    type Output = Self;
+
+    fn add(self, rhs: Vec3) -> Self::Output {
+        Self::new(self.0 + rhs.x(), self.1 + rhs.y(), self.2 + rhs.z())
+    }
 }
 
 impl Sub for Color3 {
