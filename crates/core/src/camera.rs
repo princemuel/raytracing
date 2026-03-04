@@ -24,6 +24,8 @@ pub struct Camera {
 }
 
 impl Camera {
+    /// Creates a new [`Camera`].
+    #[must_use]
     pub fn new() -> Self {
         Self {
             aspect_ratio: 1.0,
@@ -32,6 +34,11 @@ impl Camera {
         }
     }
 
+    /// .
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if .
     pub fn render(&mut self, world: &dyn Hittable) -> io::Result<()> {
         self.initialize();
 
@@ -47,7 +54,7 @@ impl Camera {
                 let ray_direction = pixel_center - self.center;
                 let ray = Ray::new(self.center, ray_direction);
 
-                let color = self.ray_color(ray, world);
+                let color = Self::ray_color(ray, world);
                 writeln!(&mut io::stdout(), "{color}")?;
             }
         }
@@ -57,12 +64,13 @@ impl Camera {
     }
 
     fn initialize(&mut self) {
-        self.image_height = (self.image_width as Real / self.aspect_ratio).max(1.0) as i32;
+        let image_width = Real::from(self.image_width);
+
+        self.image_height = (image_width / self.aspect_ratio).max(1.0) as i32;
+
+        let image_height = Real::from(self.image_height);
+
         self.center = Point3::ZERO;
-
-        let image_width = self.image_width as Real;
-        let image_height = self.image_height as Real;
-
         // Determine viewport dimensions
         let focal_length = 1.0;
         let vh = 2.0;
@@ -83,7 +91,7 @@ impl Camera {
         self.pixel00_loc = viewport_top_left + 0.5 * (self.pixel_du + self.pixel_dv);
     }
 
-    fn ray_color(&self, ray: Ray, world: &dyn Hittable) -> Color3 {
+    fn ray_color(ray: Ray, world: &dyn Hittable) -> Color3 {
         let mut hit_record = HitRecord::new();
 
         if world.hit(ray, interval(0, INFINITY), &mut hit_record) {

@@ -6,10 +6,13 @@ use crate::ray::Ray;
 pub struct Sphere(Point3, Real);
 
 impl Sphere {
+    #[must_use]
     pub const fn new(center: Point3, radius: Real) -> Self { Self(center, radius.max(0.0)) }
 
+    #[must_use]
     pub const fn center(&self) -> Point3 { self.0 }
 
+    #[must_use]
     pub const fn radius(&self) -> Real { self.1 }
 }
 
@@ -25,7 +28,7 @@ impl Hittable for Sphere {
 
         if discriminant < 0.0 {
             return false;
-        };
+        }
 
         let sqrtd = discriminant.sqrt();
 
@@ -36,7 +39,7 @@ impl Hittable for Sphere {
             if !t.surrounds(root) {
                 return false;
             }
-        };
+        }
 
         hit_record.set_t(root);
         hit_record.set_p(ray.at(hit_record.t()));

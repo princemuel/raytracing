@@ -16,21 +16,27 @@ where
 pub struct Interval(RangeInclusive<Real>);
 impl Interval {
     /// Creates a new interval with the given bounds (inclusive)
+    #[must_use]
     pub const fn new(min: Real, max: Real) -> Self { Self(min..=max) }
 
     /// Creates an empty interval (min > max)
+    #[must_use]
     pub const fn empty() -> Self { Self(Real::INFINITY..=Real::NEG_INFINITY) }
 
     /// Creates a universe interval (all real numbers)
+    #[must_use]
     pub const fn universe() -> Self { Self(Real::NEG_INFINITY..=Real::INFINITY) }
 
     /// Returns the minimum bound
+    #[must_use]
     pub const fn min(&self) -> Real { *self.0.start() }
 
     /// Returns the maximum bound
+    #[must_use]
     pub const fn max(&self) -> Real { *self.0.end() }
 
     /// Clamps `x` to be within the interval bounds
+    #[must_use]
     pub const fn clamp(&self, x: Real) -> Real { x.clamp(self.min(), self.max()) }
 
     /// Returns the raw size of the interval (`max - min`).
@@ -43,8 +49,10 @@ impl Interval {
     /// This method performs no validation or clamping and should not be used
     /// to test emptiness. Prefer `is_empty`, `size_checked`, or
     /// `size_nonnegative` when safety is required.
+    #[must_use]
     pub const fn size(&self) -> Real { self.max() - self.min() }
 
+    #[must_use]
     pub const fn size_checked(&self) -> Option<Real> {
         if self.is_empty() || !self.is_valid() {
             None
@@ -53,6 +61,7 @@ impl Interval {
         }
     }
 
+    #[must_use]
     pub const fn size_nonnegative(&self) -> Real {
         if self.is_empty() || !self.is_valid() {
             0.0
@@ -62,19 +71,25 @@ impl Interval {
     }
 
     /// Checks if the interval contains `x` (inclusive)
+    #[must_use]
     pub const fn contains(&self, x: Real) -> bool { self.0.contains(&x) }
 
     /// Checks if the interval surrounds `x` (exclusive)
+    #[must_use]
     pub const fn surrounds(&self, x: Real) -> bool { self.min() < x && x < self.max() }
 
+    #[must_use]
     pub const fn is_empty(&self) -> bool { self.min() > self.max() }
 
+    #[must_use]
     pub const fn is_universe(&self) -> bool {
         self.min() == Real::NEG_INFINITY && self.max() == Real::INFINITY
     }
 
+    #[must_use]
     pub const fn is_valid(&self) -> bool { !self.min().is_nan() && !self.max().is_nan() }
 
+    #[must_use]
     pub const fn is_finite(&self) -> bool { self.min().is_finite() && self.max().is_finite() }
 }
 

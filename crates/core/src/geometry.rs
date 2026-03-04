@@ -22,7 +22,7 @@ impl Axis {
 }
 
 /// Creates a 3-dimensional vector.
-#[inline(always)]
+#[inline]
 #[must_use]
 pub fn vec3<X, Y, Z>(x: X, y: Y, z: Z) -> Vec3
 where
@@ -44,6 +44,7 @@ impl Vec3 {
     pub const fn splat(value: Real) -> Self { Self(value, value, value) }
 
     /// Alternative to using the index
+    #[must_use]
     pub const fn get(&self, axis: Axis) -> Real {
         match axis {
             Axis::X => self.0,
@@ -52,10 +53,13 @@ impl Vec3 {
         }
     }
 
+    #[must_use]
     pub const fn x(&self) -> Real { self.0 }
 
+    #[must_use]
     pub const fn y(&self) -> Real { self.1 }
 
+    #[must_use]
     pub const fn z(&self) -> Real { self.2 }
 }
 
@@ -93,10 +97,13 @@ impl Vec3 {
 }
 
 impl Vec3 {
+    #[must_use]
     pub fn length(&self) -> Real { Real::sqrt(self.length_squared()) }
 
+    #[must_use]
     pub const fn length_squared(&self) -> Real { self.0 * self.0 + self.1 * self.1 + self.2 * self.2 }
 
+    #[must_use]
     pub const fn dot(&self, rhs: Self) -> Real { self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2 }
 
     #[must_use]
