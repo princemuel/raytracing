@@ -1,15 +1,138 @@
+#:tombi schema.strict = false
 #:schema https://www.schemastore.org/cargo.json
 # https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions
-[workspace]
-members  = ["crates/*"]
-resolver = "3"
 
-  [workspace.package]
-  authors = ["Prince Muel <68931805+princemuel@users.noreply.github.com>"]
-  edition = "2024"
-  version = "0.1.0"
-  [workspace.dependencies]
-  rand       = "0.9"
-  rtc_cmp    = { path = "crates/compare" }
-  rtc_core   = { path = "crates/core" }
-  rtc_shared = { path = "crates/shared" }
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Prince Muel <68931805+princemuel@users.noreply.github.com>"]
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.package.features]
+
+[workspace.dependencies]
+rand = "0.10"
+rtc_cmp = { path = "crates/compare" }
+rtc_core = { path = "crates/core" }
+rtc_shared = { path = "crates/shared" }
+
+[workspace.lints.rust]
+future-incompatible                        = { level = "warn", priority = -1 }
+# --- Safety & correctness ---
+nonstandard-style                          = { level = "warn", priority = -1 }
+rust-2018-idioms                           = { level = "warn", priority = -1 }
+unknown-or-malformed-diagnostic-attributes = { level = "warn", priority = -1 }
+unused                                     = { level = "warn", priority = -1 }
+
+# --- Standalone (no clippy equivalent) ---
+ambiguous-negative-literals                   = "warn"
+closure-returning-async-block                 = "warn"
+deref-into-dyn-supertrait                     = "warn"
+ffi-unwind-calls                              = "warn"  # remove if no FFI
+fuzzy-provenance-casts                        = "warn"
+impl-trait-redundant-captures                 = "warn"
+let-underscore-drop                           = "warn"
+lossy-provenance-casts                        = "warn"
+macro-use-extern-crate                        = "deny"
+meta-variable-misuse                          = "deny"
+missing-copy-implementations                  = "deny"
+# missing-docs                          = "deny"
+missing-debug-implementations                 = "deny"
+multiple-supertrait-upcastable                = "warn"
+must-not-suspend                              = "warn"
+non-ascii-idents                              = "deny"
+non-exhaustive-omitted-patterns               = "warn"
+redundant-imports                             = "deny"
+redundant-lifetimes                           = "deny"
+resolving-to-items-shadowing-supertrait-items = "deny"
+shadowing-supertrait-items                    = "deny"
+single-use-lifetimes                          = "deny"
+trivial-casts                                 = "deny"
+trivial-numeric-casts                         = "deny"
+unit-bindings                                 = "deny"
+unnameable-types                              = "deny"
+unqualified-local-imports                     = "warn"
+unreachable-pub                               = "warn"
+unsafe-code                                   = "warn"
+# unused-crate-dependencies                     = "warn"
+unused-import-braces                          = "deny"
+unused-lifetimes                              = "warn"
+unused-qualifications                         = "deny"
+# unused-results                                = "warn"
+
+[workspace.lints.clippy]
+all      = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+# --- Allowed ---
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+
+# --- Restriction lints (cherry-picked, not in all/pedantic) ---
+expect_used                          = "warn"
+filetype_is_file                     = "deny"
+float_cmp_const                      = "deny"
+fn_to_numeric_cast_any               = "deny"
+host_endian_bytes                    = "deny"
+if_then_some_else_none               = "warn"
+indexing_slicing                     = "deny"
+infinite_loop                        = "deny"
+integer_division                     = "deny"
+integer_division_remainder_used      = "deny"
+large_include_file                   = "deny"
+let_underscore_untyped               = "warn"
+little_endian_bytes                  = "warn"
+map_err_ignore                       = "warn"
+map_with_unused_argument_over_ranges = "warn"
+mem_forget                           = "deny"
+missing_asserts_for_indexing         = "deny"
+# missing_inline_in_public_items  = "warn"
+mixed_read_write_in_expression       = "deny"
+# module_name_repetitions         = "deny"
+needless_raw_strings                 = "deny"
+non_zero_suggestions                 = "deny"
+ossy_float_literal                   = "deny"
+panic                                = "warn"
+panic_in_result_fn                   = "deny"
+pathbuf_init_then_push               = "deny"
+pattern_type_mismatch                = "warn"
+precedence_bits                      = "deny"
+print_stdout                         = "deny"
+pub_without_shorthand                = "deny"
+rc_buffer                            = "deny"
+rc_mutex                             = "deny"
+redundant_test_prefix                = "deny"
+redundant_type_annotations           = "deny"
+ref_patterns                         = "warn"
+renamed_function_params              = "deny"
+rest_pat_in_fully_bound_structs      = "deny"
+return_and_then                      = "deny"
+self_named_module_files              = "deny"
+std_instead_of_alloc                 = "deny"
+std_instead_of_core                  = "deny"
+str_to_string                        = "deny"
+string_add                           = "deny"
+string_lit_chars_any                 = "deny"
+tests_outside_test_module            = "deny"
+todo                                 = "warn"
+unneeded_field_pattern               = "warn"
+unseparated_literal_suffix           = "warn"
+unused_trait_names                   = "deny"
+unwrap_used                          = "warn"
+# verbose_file_reads = "warn"
+
+[profile.dev]
+opt-level = 2
+incremental = true
+
+[profile.release]
+opt-level     = 2
+strip         = true
+lto           = "thin"
+panic         = "abort"
+codegen-units = 1
