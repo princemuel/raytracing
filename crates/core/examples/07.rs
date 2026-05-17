@@ -20,7 +20,7 @@ fn main() -> io::Result<()> {
     let image_height = if image_height < 1 { 1 } else { image_height };
 
     // World
-    let mut world = HittableList::new();
+    let mut world = HittableList::default();
     world.add(Arc::new(Sphere::new(Point3::NEG_Z, 0.5)));
     world.add(Arc::new(Sphere::new(point3(0, -100.5, -1), 100.0)));
 

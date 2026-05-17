@@ -9,6 +9,7 @@
 //! ```
 #![feature(const_trait_impl)]
 #![feature(const_ops)]
+#![feature(impl_trait_in_assoc_type)]
 
 pub mod camera;
 pub mod color;
