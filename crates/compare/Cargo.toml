@@ -1,8 +1,0 @@
-[package]
-authors.workspace = true
-edition.workspace = true
-name              = "rtc_cmp"
-version.workspace = true
-
-[dependencies]
-rtc_shared.workspace = true

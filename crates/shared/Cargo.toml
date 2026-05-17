@@ -1,6 +1,5 @@
 [package]
 name = "rtc_shared"
-authors.workspace = true
 edition.workspace = true
 version.workspace = true
 
