@@ -1,5 +1,8 @@
+#![expect(clippy::similar_names)]
+#![expect(clippy::as_conversions)]
+#![expect(clippy::cast_possible_truncation)]
 use std::io;
-use std::io::Write;
+use std::io::Write as _;
 
 use rtc_core::prelude::*;
 use rtc_shared::Real;
@@ -11,13 +14,13 @@ fn main() -> io::Result<()> {
     let image_width = 400;
 
     // Calculate the image height, and ensure that it's at least 1
-    let image_height = (image_width as Real / aspect_ratio) as i32;
+    let image_height = (Real::from(image_width) / aspect_ratio) as i32;
     let image_height = if image_height < 1 { 1 } else { image_height };
 
     // Camera
     let focal_length = 1.0;
     let vh = 2.0;
-    let vw = vh * (image_width as Real / image_height as Real);
+    let vw = vh * (Real::from(image_width) / Real::from(image_height));
     let camera_center = Point3::ZERO;
 
     // Calculate the vectors across the horizontal and down the vertical viewport
@@ -26,8 +29,8 @@ fn main() -> io::Result<()> {
     let viewport_v = vec3(0, -vh, 0);
 
     // Calcualte the horizontal and the vertical delta vectors from pixel to pixel
-    let pixel_du = viewport_u / image_width as Real;
-    let pixel_dv = viewport_v / image_height as Real;
+    let pixel_du = viewport_u / Real::from(image_width);
+    let pixel_dv = viewport_v / Real::from(image_height);
 
     // Calculate the location of the upper left pixel
     let viewport_top_left =
@@ -43,12 +46,13 @@ fn main() -> io::Result<()> {
         io::stderr().flush()?;
 
         for i in 0..image_width {
-            let pixel_center = pixel00_loc + (i as Real * pixel_du) + (j as Real * pixel_dv);
+            let pixel_center =
+                pixel00_loc + (Real::from(i) * pixel_du) + (Real::from(j) * pixel_dv);
             let ray_direction = pixel_center - camera_center;
             let ray = Ray::new(camera_center, ray_direction);
 
             let color = {
-                let unit_direction = ray.direction().unit();
+                let unit_direction = ray.direction.unit();
                 let a = 0.5 * (unit_direction.y + 1.0);
                 (1.0 - a) * Color3::WHITE + a * color(0.5, 0.7, 1.0)
             };

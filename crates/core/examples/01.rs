@@ -1,5 +1,7 @@
+#![expect(clippy::as_conversions)]
+#![expect(clippy::cast_possible_truncation)]
 use std::io;
-use std::io::Write;
+use std::io::Write as _;
 
 use rtc_shared::Real;
 
@@ -17,8 +19,8 @@ fn main() -> io::Result<()> {
         io::stderr().flush()?;
 
         for i in 0..image_width {
-            let r = i as Real / (image_width - 1) as Real;
-            let g = j as Real / (image_height - 1) as Real;
+            let r = Real::from(i) / Real::from(image_width - 1);
+            let g = Real::from(j) / Real::from(image_height - 1);
             let b = 0.0;
 
             // Translate the [0,1] component values to the byte range [0,255]
