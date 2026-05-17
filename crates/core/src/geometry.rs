@@ -8,6 +8,7 @@ pub enum Axis {
     Y,
     Z,
 }
+
 impl Axis {
     pub const ALL: [Self; 3] = [Self::X, Self::Y, Self::Z];
 
@@ -21,120 +22,101 @@ impl Axis {
     }
 }
 
-/// Creates a 3-dimensional vector.
 #[inline]
 #[must_use]
-pub fn vec3<X, Y, Z>(x: X, y: Y, z: Z) -> Vec3
-where
-    X: Into<Real>,
-    Y: Into<Real>,
-    Z: Into<Real>,
-{
+pub fn vec3(x: impl Into<Real>, y: impl Into<Real>, z: impl Into<Real>) -> Vec3 {
     Vec3::new(x.into(), y.into(), z.into())
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct Vec3(Real, Real, Real);
-impl Vec3 {
-    #[must_use]
-    pub const fn new(e0: Real, e1: Real, e2: Real) -> Self { Self(e0, e1, e2) }
-
-    /// Creates a vector with all elements set to `value`.
-    #[must_use]
-    pub const fn splat(value: Real) -> Self { Self(value, value, value) }
-
-    /// Alternative to using the index
-    #[must_use]
-    pub const fn get(&self, axis: Axis) -> Real {
-        match axis {
-            Axis::X => self.0,
-            Axis::Y => self.1,
-            Axis::Z => self.2,
-        }
-    }
-
-    #[must_use]
-    pub const fn x(&self) -> Real { self.0 }
-
-    #[must_use]
-    pub const fn y(&self) -> Real { self.1 }
-
-    #[must_use]
-    pub const fn z(&self) -> Real { self.2 }
+pub struct Vec3 {
+    pub x: Real,
+    pub y: Real,
+    pub z: Real,
 }
 
 impl Vec3 {
-    /// The unit axes.
+    #[must_use]
+    pub const fn new(x: Real, y: Real, z: Real) -> Self { Self { x, y, z } }
+
+    #[must_use]
+    pub const fn splat(value: Real) -> Self { Self { x: value, y: value, z: value } }
+
+    #[must_use]
+    pub const fn get(self, axis: Axis) -> Real {
+        match axis {
+            Axis::X => self.x,
+            Axis::Y => self.y,
+            Axis::Z => self.z,
+        }
+    }
+
+    // Kept for compatibility with book code and dot/cross readability
+    #[must_use]
+    pub const fn x(self) -> Real { self.x }
+
+    #[must_use]
+    pub const fn y(self) -> Real { self.y }
+
+    #[must_use]
+    pub const fn z(self) -> Real { self.z }
+}
+
+impl Vec3 {
+    /// The three unit axis vectors [X, Y, Z].
     pub const AXES: [Self; 3] = [Self::X, Self::Y, Self::Z];
-    /// All `Real::INFINITY`.
     pub const INFINITY: Self = Self::splat(Real::INFINITY);
-    /// All `Real::MAX`.
     pub const MAX: Self = Self::splat(Real::MAX);
-    /// All `Real::MIN`.
     pub const MIN: Self = Self::splat(Real::MIN);
-    /// All `Real::NAN`.
     pub const NAN: Self = Self::splat(Real::NAN);
-    /// All `Real::NEG_INFINITY`.
     pub const NEG_INFINITY: Self = Self::splat(Real::NEG_INFINITY);
-    /// All negative ones.
     pub const NEG_ONE: Self = Self::splat(-1.0);
-    /// A unit vector pointing along the negative X axis.
     pub const NEG_X: Self = Self::new(-1.0, 0.0, 0.0);
-    /// A unit vector pointing along the negative Y axis.
     pub const NEG_Y: Self = Self::new(0.0, -1.0, 0.0);
-    /// A unit vector pointing along the negative Z axis.
     pub const NEG_Z: Self = Self::new(0.0, 0.0, -1.0);
-    /// All ones.
     pub const ONE: Self = Self::splat(1.0);
-    /// A unit vector pointing along the positive X axis.
     pub const X: Self = Self::new(1.0, 0.0, 0.0);
-    /// A unit vector pointing along the positive Y axis.
     pub const Y: Self = Self::new(0.0, 1.0, 0.0);
-    /// A unit vector pointing along the positive Z axis.
     pub const Z: Self = Self::new(0.0, 0.0, 1.0);
-    /// All zeroes.
     pub const ZERO: Self = Self::splat(0.0);
 }
 
 impl Vec3 {
     #[must_use]
-    pub fn length(&self) -> Real { Real::sqrt(self.length_squared()) }
+    pub fn length(self) -> Real { self.length_squared().sqrt() }
 
     #[must_use]
-    pub const fn length_squared(&self) -> Real { self.0 * self.0 + self.1 * self.1 + self.2 * self.2 }
+    pub const fn length_squared(self) -> Real { self.x * self.x + self.y * self.y + self.z * self.z }
 
     #[must_use]
-    pub const fn dot(&self, rhs: Self) -> Real { self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2 }
+    pub const fn dot(self, rhs: Self) -> Real { self.x * rhs.x + self.y * rhs.y + self.z * rhs.z }
 
     #[must_use]
-    pub fn cross(&self, rhs: Self) -> Self {
+    pub fn cross(self, rhs: Self) -> Self {
         Self::new(
-            self.1 * rhs.2 - self.2 * rhs.1,
-            self.2 * rhs.0 - self.0 * rhs.2,
-            self.0 * rhs.1 - self.1 * rhs.0,
+            self.y * rhs.z - self.z * rhs.y,
+            self.z * rhs.x - self.x * rhs.z,
+            self.x * rhs.y - self.y * rhs.x,
         )
     }
 
     #[must_use]
-    pub fn unit(&self) -> Self { *self / self.length() }
+    pub fn unit(self) -> Self { self / self.length() }
 }
 
-/// Create a 3-dimensional point
+/// A point in 3D space. Alias for `Vec3`. not a distinct newtype.
+/// See "Ray Tracing in One Weekend" §3.
+pub type Point3 = Vec3;
+
 #[inline]
-pub fn point3<X, Y, Z>(x: X, y: Y, z: Z) -> Point3
-where
-    X: Into<Real>,
-    Y: Into<Real>,
-    Z: Into<Real>,
-{
+pub fn point3(x: impl Into<Real>, y: impl Into<Real>, z: impl Into<Real>) -> Point3 {
     Point3::new(x.into(), y.into(), z.into())
 }
-pub type Point3 = Vec3;
 
 impl core::fmt::Display for Vec3 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let p = f.precision().unwrap_or(3);
-        write!(f, "{:.p$} {:.p$} {:.p$}]", self.x(), self.y(), self.z())
+        write!(f, "[{:.p$} {:.p$} {:.p$}]", self.x, self.y, self.z)
     }
 }
 
@@ -143,10 +125,10 @@ impl Index<usize> for Vec3 {
 
     fn index(&self, i: usize) -> &Self::Output {
         match i {
-            0 => &self.0,
-            1 => &self.1,
-            2 => &self.2,
-            _ => unreachable!("index out of bounds"),
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("Vec3 index {i} out of bounds (0..=2)"),
         }
     }
 }
@@ -154,70 +136,70 @@ impl Index<usize> for Vec3 {
 impl IndexMut<usize> for Vec3 {
     fn index_mut(&mut self, i: usize) -> &mut Self::Output {
         match i {
-            0 => &mut self.0,
-            1 => &mut self.1,
-            2 => &mut self.2,
-            _ => unreachable!("index out of bounds"),
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("Vec3 index {i} out of bounds (0..=2)"),
         }
     }
+}
+
+impl Neg for Vec3 {
+    type Output = Self;
+
+    fn neg(self) -> Self { Self::new(-self.x, -self.y, -self.z) }
 }
 
 impl Add for Vec3 {
     type Output = Self;
 
-    fn add(self, rhs: Self) -> Self::Output { Self::new(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2) }
+    fn add(self, rhs: Self) -> Self { Self::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z) }
 }
 
 impl AddAssign for Vec3 {
     fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-        self.1 += rhs.1;
-        self.2 += rhs.2;
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
     }
 }
 
 impl Sub for Vec3 {
     type Output = Self;
 
-    fn sub(self, rhs: Self) -> Self::Output { Self::new(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2) }
-}
-
-impl const Neg for Vec3 {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output { Self::new(-self.0, -self.1, -self.2) }
+    fn sub(self, rhs: Self) -> Self { Self::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z) }
 }
 
 impl Mul for Vec3 {
     type Output = Self;
 
-    fn mul(self, rhs: Self) -> Self::Output { Self::new(self.0 * rhs.0, self.1 * rhs.1, self.2 * rhs.2) }
-}
-
-impl Mul<Vec3> for Real {
-    type Output = Vec3;
-
-    fn mul(self, rhs: Vec3) -> Self::Output { Vec3::new(self * rhs.0, self * rhs.1, self * rhs.2) }
+    fn mul(self, rhs: Self) -> Self { Self::new(self.x * rhs.x, self.y * rhs.y, self.z * rhs.z) }
 }
 
 impl Mul<Real> for Vec3 {
     type Output = Self;
 
-    fn mul(self, rhs: Real) -> Self::Output { rhs * self }
+    fn mul(self, rhs: Real) -> Self { rhs * self }
+}
+
+impl Mul<Vec3> for Real {
+    type Output = Vec3;
+
+    fn mul(self, rhs: Vec3) -> Vec3 { Vec3::new(self * rhs.x, self * rhs.y, self * rhs.z) }
 }
 
 impl MulAssign<Real> for Vec3 {
     fn mul_assign(&mut self, rhs: Real) {
-        self.0 *= rhs;
-        self.1 *= rhs;
-        self.2 *= rhs;
+        self.x *= rhs;
+        self.y *= rhs;
+        self.z *= rhs;
     }
 }
 
 impl Div for Vec3 {
     type Output = Self;
 
-    fn div(self, rhs: Self) -> Self::Output { Self::new(self.0 / rhs.0, self.1 / rhs.1, self.2 / rhs.2) }
+    fn div(self, rhs: Self) -> Self { Self::new(self.x / rhs.x, self.y / rhs.y, self.z / rhs.z) }
 }
 
 impl Div<Real> for Vec3 {

@@ -3,49 +3,52 @@ use rtc_shared::Real;
 use crate::prelude::{HitRecord, Hittable, Interval, Point3};
 use crate::ray::Ray;
 
-pub struct Sphere(Point3, Real);
+#[derive(Clone, Copy, Debug)]
+pub struct Sphere {
+    pub center: Point3,
+    pub radius: Real,
+}
 
 impl Sphere {
     #[must_use]
-    pub const fn new(center: Point3, radius: Real) -> Self { Self(center, radius.max(0.0)) }
-
-    #[must_use]
-    pub const fn center(&self) -> Point3 { self.0 }
-
-    #[must_use]
-    pub const fn radius(&self) -> Real { self.1 }
+    pub const fn new(center: Point3, radius: Real) -> Self { Self { center, radius: radius.max(0.0) } }
 }
-
 impl Hittable for Sphere {
-    fn hit(&self, ray: Ray, t: Interval, hit_record: &mut HitRecord) -> bool {
-        let origin_center = self.center() - ray.origin();
+    fn hit(&self, ray: Ray, t: Interval) -> Option<HitRecord> {
+        let origin_center = self.center - ray.origin();
 
         let a = ray.direction().length_squared();
         let h = ray.direction().dot(origin_center);
-        let c = origin_center.length_squared() - self.radius() * self.radius();
+        let c = origin_center.length_squared() - self.radius * self.radius;
 
         let discriminant: Real = h * h - a * c;
 
         if discriminant < 0.0 {
-            return false;
+            return None;
         }
 
         let sqrtd = discriminant.sqrt();
 
         // Find the nearest root that lies in the acceptable range
-        let mut root = (h - sqrtd) / a;
-        if !t.surrounds(root) {
-            root = (h + sqrtd) / a;
-            if !t.surrounds(root) {
-                return false;
+        let root = {
+            let r1 = (h - sqrtd) / a;
+            if t.surrounds(r1) {
+                r1
+            } else {
+                let r2 = (h + sqrtd) / a;
+                if t.surrounds(r2) {
+                    r2
+                } else {
+                    return None;
+                }
             }
-        }
+        };
 
-        hit_record.set_t(root);
-        hit_record.set_p(ray.at(hit_record.t()));
-        let outward_normal = (hit_record.p() - self.center()) / self.radius();
-        hit_record.set_face_normal(ray, outward_normal);
+        let p = ray.at(root);
+        let outward_normal = (p - self.center) / self.radius;
+        let mut rec = HitRecord { p, t: root, ..Default::default() };
+        rec.set_face_normal(ray, outward_normal);
 
-        true
+        Some(rec)
     }
 }

@@ -30,7 +30,8 @@ fn main() -> io::Result<()> {
     let pixel_dv = viewport_v / image_height as Real;
 
     // Calculate the location of the upper left pixel
-    let viewport_top_left = camera_center - vec3(0, 0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
+    let viewport_top_left =
+        camera_center - vec3(0, 0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
     let pixel00_loc = viewport_top_left + 0.5 * (pixel_du + pixel_dv);
 
     // Render PPM header
@@ -48,7 +49,7 @@ fn main() -> io::Result<()> {
 
             let color = {
                 let unit_direction = ray.direction().unit();
-                let a = 0.5 * (unit_direction.y() + 1.0);
+                let a = 0.5 * (unit_direction.y + 1.0);
                 (1.0 - a) * Color3::WHITE + a * color(0.5, 0.7, 1.0)
             };
 

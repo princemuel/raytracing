@@ -51,14 +51,11 @@ fn main() -> io::Result<()> {
             let ray_direction = pixel_center - camera_center;
             let ray = Ray::new(camera_center, ray_direction);
 
-            let color = {
-                let mut hit_record = HitRecord::new();
-
-                if world.hit(ray, interval(0, INFINITY), &mut hit_record) {
-                    0.5 * (Color3::WHITE + hit_record.normal())
-                } else {
+            let color = match world.hit(ray, interval(0, INFINITY)) {
+                Some(rec) => 0.5 * (Color3::WHITE + rec.normal),
+                None => {
                     let unit_direction = ray.direction().unit();
-                    let a = 0.5 * (unit_direction.y() + 1.0);
+                    let a = 0.5 * (unit_direction.y + 1.0);
                     (1.0 - a) * Color3::WHITE + a * color(0.5, 0.7, 1.0)
                 }
             };

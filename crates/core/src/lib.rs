@@ -7,17 +7,7 @@
 //! ```rust
 //! use rtc_core::prelude::*;
 //! ```
-#![warn(clippy::pedantic)]
-#![warn(clippy::ptr_arg)]
-#![warn(clippy::use_self)]
-#![warn(clippy::suspicious)]
-#![warn(clippy::perf)]
-#![feature(stmt_expr_attributes)]
-#![feature(const_range)]
 #![feature(const_trait_impl)]
-#![feature(const_ops)]
-#![allow(clippy::cast_lossless)]
-#![allow(clippy::cast_possible_truncation)]
 
 pub mod camera;
 pub mod color;

@@ -1,105 +1,84 @@
-use std::io;
-use std::io::Write;
+use std::io::{self, BufWriter, Write};
 
 use rtc_shared::{INFINITY, Real};
 
 use crate::prelude::*;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug)]
 pub struct Camera {
-    /// Ratio of the image width over height
+    /// Ratio of image width over height
     pub aspect_ratio: Real,
-    /// Rendered image width in pixel count
-    pub image_width:  i32,
-    /// Rendered image height
-    image_height:     i32,
-    /// Camera center
-    center:           Point3,
-    /// Location of pixel 0, 0
-    pixel00_loc:      Point3,
-    /// Offset to the pixel to the right
-    pixel_du:         Vec3,
-    /// Offset to the pixel below
-    pixel_dv:         Vec3,
+    /// Rendered image width in pixels
+    pub image_width: i32,
+}
+
+impl Default for Camera {
+    fn default() -> Self { Self { aspect_ratio: 1.0, image_width: 100 } }
+}
+
+struct CameraConfig {
+    image_height: i32,
+    center: Point3,
+    pixel00_loc: Point3,
+    pixel_du: Vec3,
+    pixel_dv: Vec3,
 }
 
 impl Camera {
-    /// Creates a new [`Camera`].
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            aspect_ratio: 1.0,
-            image_width: 100,
-            ..Default::default()
-        }
-    }
+    pub fn render(&self, world: &dyn Hittable) -> io::Result<()> {
+        let cfg = self.build_config();
 
-    /// .
-    ///
-    /// # Errors
-    ///
-    /// This function will return an error if .
-    pub fn render(&mut self, world: &dyn Hittable) -> io::Result<()> {
-        self.initialize();
+        let stdout = io::stdout();
+        let mut out = BufWriter::new(stdout.lock());
 
-        println!("P3\n{} {}\n255", self.image_width, self.image_height);
+        writeln!(out, "P3\n{} {}\n255", self.image_width, cfg.image_height)?;
 
-        for j in 0..self.image_height {
-            eprint!("\rScanlines remaining: {} ", self.image_height - j);
+        for j in 0..cfg.image_height {
+            eprint!("\rScanlines remaining: {} ", cfg.image_height - j);
             io::stderr().flush()?;
 
             for i in 0..self.image_width {
                 let pixel_center =
-                    self.pixel00_loc + (i as Real * self.pixel_du) + (j as Real * self.pixel_dv);
-                let ray_direction = pixel_center - self.center;
-                let ray = Ray::new(self.center, ray_direction);
-
+                    cfg.pixel00_loc + (i as Real * cfg.pixel_du) + (j as Real * cfg.pixel_dv);
+                let ray = Ray::new(cfg.center, pixel_center - cfg.center);
                 let color = Self::ray_color(ray, world);
-                writeln!(&mut io::stdout(), "{color}")?;
+                writeln!(out, "{color}")?;
             }
         }
 
-        eprint!("\rDone.                 \n");
+        eprintln!("\rDone.");
         Ok(())
     }
 
-    fn initialize(&mut self) {
-        let image_width = Real::from(self.image_width);
+    fn build_config(&self) -> CameraConfig {
+        let image_width = self.image_width as Real;
+        let image_height = (image_width / self.aspect_ratio).max(1.0) as i32;
+        let image_height_f = image_height as Real;
 
-        self.image_height = (image_width / self.aspect_ratio).max(1.0) as i32;
+        let center = Point3::ZERO;
+        let focal_length: Real = 1.0;
+        let vh: Real = 2.0;
+        let vw = vh * (image_width / image_height_f);
 
-        let image_height = Real::from(self.image_height);
-
-        self.center = Point3::ZERO;
-        // Determine viewport dimensions
-        let focal_length = 1.0;
-        let vh = 2.0;
-        let vw = vh * (image_width / image_height);
-
-        // Calculate the vectors across the horizontal and down the vertical viewport
-        // edges
         let viewport_u = vec3(vw, 0, 0);
         let viewport_v = vec3(0, -vh, 0);
 
-        // Calculate the horizontal and vertical delta vectors from pixel to pixel
-        self.pixel_du = viewport_u / image_width;
-        self.pixel_dv = viewport_v / image_height;
+        let pixel_du = viewport_u / image_width;
+        let pixel_dv = viewport_v / image_height_f;
 
-        // Calculate the location of the upper left pixel
-        let viewport_top_left =
-            self.center - vec3(0, 0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
-        self.pixel00_loc = viewport_top_left + 0.5 * (self.pixel_du + self.pixel_dv);
+        let viewport_top_left = center - vec3(0, 0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
+        let pixel00_loc = viewport_top_left + 0.5 * (pixel_du + pixel_dv);
+
+        CameraConfig { image_height, center, pixel00_loc, pixel_du, pixel_dv }
     }
 
     fn ray_color(ray: Ray, world: &dyn Hittable) -> Color3 {
-        let mut hit_record = HitRecord::new();
-
-        if world.hit(ray, interval(0, INFINITY), &mut hit_record) {
-            return 0.5 * (Color3::WHITE + hit_record.normal());
+        if let Some(record) = world.hit(ray, interval(0, INFINITY)) {
+            return 0.5 * (Color3::WHITE + record.normal);
         }
 
         let unit_direction = ray.direction().unit();
-        let a = 0.5 * (unit_direction.y() + 1.0);
+        let a = 0.5 * (unit_direction.y + 1.0);
         (1.0 - a) * Color3::WHITE + a * color(0.5, 0.7, 1.0)
     }
 }

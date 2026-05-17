@@ -10,11 +10,7 @@ fn main() -> io::Result<()> {
     world.add(Arc::new(Sphere::new(point3(0, -100.5, -1), 100.0)));
 
     // Camera
-    let mut camera = Camera::new();
-    camera.aspect_ratio = 16.0 / 9.0;
-    camera.image_width = 400;
+    let camera = Camera { aspect_ratio: 16.0 / 9.0, image_width: 400 };
 
-    camera.render(&world)?;
-
-    Ok(())
+    camera.render(&world)
 }

@@ -60,7 +60,7 @@ fn main() -> io::Result<()> {
                     Color3::RED
                 } else {
                     let unit_direction = ray.direction().unit();
-                    let a = 0.5 * (unit_direction.y() + 1.0);
+                    let a = 0.5 * (unit_direction.y + 1.0);
                     (1.0 - a) * Color3::WHITE + a * color(0.5, 0.7, 1.0)
                 }
             };
