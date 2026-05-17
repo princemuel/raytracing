@@ -2,21 +2,16 @@ use core::iter::{Product, Sum};
 use core::ops::{Add, Div, Mul, Sub};
 use core::str::FromStr;
 
-use rtc_shared::Real;
+use rtc_shared::{FuzzyEq as _, Real};
 
 use crate::prelude::Vec3;
 
 #[inline]
-pub fn color<R, G, B>(r: R, g: G, b: B) -> Color3
-where
-    R: Into<Real>,
-    G: Into<Real>,
-    B: Into<Real>,
-{
+pub fn color(r: impl Into<Real>, g: impl Into<Real>, b: impl Into<Real>) -> Color3 {
     Color3 { r: r.into(), g: g.into(), b: b.into() }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Color3 {
     pub r: Real,
     pub g: Real,
@@ -36,14 +31,25 @@ impl Color3 {
     pub const WHITE: Self = Self::splat(1.0);
     pub const YELLOW: Self = Self::new(1.0, 1.0, 0.0);
 
+    #[must_use]
     pub const fn new(r: Real, g: Real, b: Real) -> Self { Self { r, g, b } }
 
+    #[must_use]
     pub const fn splat(v: Real) -> Self { Self { r: v, g: v, b: v } }
 }
 
+impl PartialEq for Color3 {
+    fn eq(&self, other: &Self) -> bool {
+        self.r.fuzzy_eq(&other.r) && self.g.fuzzy_eq(&other.g) && self.b.fuzzy_eq(&other.b)
+    }
+}
+
+#[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::as_conversions)]
 impl From<Color3> for [u8; 3] {
-    #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    fn from(c: Color3) -> Self { [c.r, c.g, c.b].map(|v| (v.clamp(0.0, 0.999) * FLOAT_TO_BYTE) as u8) }
+    // clamp(0.0, 0.999) * 256.0 is always in [0.0, 255.744]. the cast is safe
+    fn from(c: Color3) -> Self {
+        [c.r, c.g, c.b].map(|v| (v.clamp(0.0, 0.999) * FLOAT_TO_BYTE) as u8)
+    }
 }
 
 impl core::fmt::Display for Color3 {
@@ -71,8 +77,9 @@ impl FromStr for Color3 {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let hex =
-            s.strip_prefix('#').ok_or_else(|| format!("hex color must start with '#', got: {s}"))?;
+        let hex = s
+            .strip_prefix('#')
+            .ok_or_else(|| format!("hex color must start with '#', got: {s}"))?;
 
         if hex.len() != 6 {
             return Err(format!("hex color must be 7 chars (#RRGGBB), got: {s}"));
@@ -80,7 +87,7 @@ impl FromStr for Color3 {
 
         let parse = |slice: &str, ch| {
             u8::from_str_radix(slice, 16)
-                .map_err(|_| format!("invalid {ch} component '{slice}' (expected 00-FF)"))
+                .map_err(|_e| format!("invalid {ch} component '{slice}' (expected 00-FF)"))
         };
 
         Ok(Self::from([
@@ -94,7 +101,9 @@ impl FromStr for Color3 {
 impl Add for Color3 {
     type Output = Self;
 
-    fn add(self, rhs: Self) -> Self { Self::new(self.r + rhs.r, self.g + rhs.g, self.b + rhs.b) }
+    fn add(self, rhs: Self) -> Self {
+        Self::new(self.r + rhs.r, self.g + rhs.g, self.b + rhs.b)
+    }
 }
 
 /// Allows mapping a surface normal (Vec3 in [-1,1]) to a color.
@@ -102,19 +111,25 @@ impl Add for Color3 {
 impl Add<Vec3> for Color3 {
     type Output = Self;
 
-    fn add(self, rhs: Vec3) -> Self { Self::new(self.r + rhs.x, self.g + rhs.y, self.b + rhs.z) }
+    fn add(self, rhs: Vec3) -> Self {
+        Self::new(self.r + rhs.x, self.g + rhs.y, self.b + rhs.z)
+    }
 }
 
 impl Sub for Color3 {
     type Output = Self;
 
-    fn sub(self, rhs: Self) -> Self { Self::new(self.r - rhs.r, self.g - rhs.g, self.b - rhs.b) }
+    fn sub(self, rhs: Self) -> Self {
+        Self::new(self.r - rhs.r, self.g - rhs.g, self.b - rhs.b)
+    }
 }
 
 impl Mul for Color3 {
     type Output = Self;
 
-    fn mul(self, rhs: Self) -> Self { Self::new(self.r * rhs.r, self.g * rhs.g, self.b * rhs.b) }
+    fn mul(self, rhs: Self) -> Self {
+        Self::new(self.r * rhs.r, self.g * rhs.g, self.b * rhs.b)
+    }
 }
 
 impl Mul<Real> for Color3 {
@@ -126,13 +141,17 @@ impl Mul<Real> for Color3 {
 impl Mul<Color3> for Real {
     type Output = Color3;
 
-    fn mul(self, rhs: Color3) -> Color3 { Color3::new(self * rhs.r, self * rhs.g, self * rhs.b) }
+    fn mul(self, rhs: Color3) -> Color3 {
+        Color3::new(self * rhs.r, self * rhs.g, self * rhs.b)
+    }
 }
 
 impl Div for Color3 {
     type Output = Self;
 
-    fn div(self, rhs: Self) -> Self { Self::new(self.r / rhs.r, self.g / rhs.g, self.b / rhs.b) }
+    fn div(self, rhs: Self) -> Self {
+        Self::new(self.r / rhs.r, self.g / rhs.g, self.b / rhs.b)
+    }
 }
 
 impl Sum for Color3 {

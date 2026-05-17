@@ -1,6 +1,9 @@
 [package]
-name = "rtc_shared"
-edition.workspace = true
+name              = "rtc_shared"
 version.workspace = true
+edition.workspace = true
 
 [dependencies]
+
+[lints]
+workspace = true

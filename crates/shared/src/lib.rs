@@ -22,7 +22,7 @@ pub const trait FuzzyEq<Rhs: PointeeSized = Self>: PointeeSized {
 impl const FuzzyEq for f32 {
     type Float = f32;
 
-    const EPSILON: f32 = 1e-4_f32;
+    const EPSILON: f32 = 1e-5_f32;
 
     fn fuzzy_eq(&self, other: &Self) -> bool {
         if self == other {
@@ -177,7 +177,7 @@ pub const fn approx_eq(x: Real, y: Real) -> bool { approx_eq_eps(x, y, EPSILON) 
 /// NaN is never equal to anything.
 #[must_use]
 pub const fn approx_eq_eps(x: Real, y: Real, epsilon: Real) -> bool {
-    #[allow(clippy::float_cmp)]
+    #[expect(clippy::float_cmp)]
     if x == y {
         return true;
     }
@@ -200,59 +200,57 @@ mod tests {
     use super::*;
 
     // approx_eq_abs
+
     #[test]
     fn abs_zeros() {
-        assert!(approx_eq_abs(0.0, 0.0, EPSILON));
-        assert!(approx_eq_abs(-0.0, -0.0, EPSILON));
-        assert!(approx_eq_abs(0.0, -0.0, EPSILON));
+        assert_fuzzy_eq!(0.0_f64, 0.0);
+        assert_fuzzy_eq!(-0.0_f64, -0.0);
+        assert_fuzzy_eq!(0.0_f64, -0.0);
     }
 
     #[test]
     fn abs_within_tolerance() {
-        assert!(approx_eq_abs(1.0 + EPSILON, 1.0, EPSILON));
+        // testing the boundary of a specific tolerance, not fuzzy equality
+        assert!(approx_eq_abs(1.0_f64 + EPSILON, 1.0, EPSILON));
     }
 
     #[test]
     fn abs_outside_tolerance() {
-        assert!(!approx_eq_abs(1.0 + 2.0 * EPSILON, 1.0, EPSILON));
+        assert_fuzzy_ne!(1.0_f64 + 2.0 * EPSILON, 1.0);
     }
 
     #[test]
     fn abs_opposite_signs_near_zero() {
-        assert!(!approx_eq_rel(1e-8, -1e-8, EPSILON));
+        assert_fuzzy_ne!(1e-8_f64, -1e-8);
     }
+
     #[test]
     fn abs_min_positive_near_zero() {
-        assert!(approx_eq_abs(Real::MIN_POSITIVE, 0.0, EPSILON * 2.0));
+        // MIN_POSITIVE is ~2.2e-308, well within any reasonable epsilon
+        assert_fuzzy_eq!(Real::MIN_POSITIVE, 0.0);
     }
 
     // approx_eq_rel
 
     #[test]
     fn rel_exact_equality() {
-        assert!(approx_eq_rel(1.0, 1.0, EPSILON));
-        assert!(approx_eq_rel(Real::INFINITY, Real::INFINITY, EPSILON));
-    }
-
-    #[test]
-    fn rel_infinity_equal_to_itself() {
-        assert!(approx_eq_rel(Real::INFINITY, Real::INFINITY, EPSILON));
+        assert_fuzzy_eq!(1.0_f64, 1.0);
+        assert_fuzzy_eq!(Real::INFINITY, Real::INFINITY);
     }
 
     #[test]
     fn rel_nan_not_equal_to_nan() {
-        assert!(!approx_eq_rel(Real::NAN, Real::NAN, EPSILON));
+        assert_fuzzy_ne!(Real::NAN, Real::NAN);
     }
 
     #[test]
     fn rel_not_equal() {
-        assert!(!approx_eq_rel(1.0, 0.0, EPSILON));
+        assert_fuzzy_ne!(1.0_f64, 0.0);
     }
 
     #[test]
-    fn rel_nan() {
-        assert!(!approx_eq_rel(Real::NAN, Real::NAN, EPSILON));
-        assert!(!approx_eq_rel(Real::NAN, 0.0, EPSILON));
+    fn rel_nan_not_equal_to_zero() {
+        assert_fuzzy_ne!(Real::NAN, 0.0);
     }
 
     #[test]
@@ -261,60 +259,64 @@ mod tests {
         assert!(approx_eq_rel(a, a + a * EPSILON * 0.5, EPSILON));
         assert!(!approx_eq_rel(a, a + a * EPSILON * 2.0, EPSILON));
     }
-
     // approx_eq (adaptive)
 
     #[test]
     fn adaptive_exact_equality() {
-        assert!(approx_eq(1.0, 1.0));
-        assert!(approx_eq(-42.5, -42.5));
-        assert!(approx_eq(0.0, -0.0));
+        assert_fuzzy_eq!(1.0_f64, 1.0);
+        assert_fuzzy_eq!(-42.5_f64, -42.5);
+        assert_fuzzy_eq!(0.0_f64, -0.0);
     }
 
     #[test]
-    fn adaptive_infinity() {
-        assert!(approx_eq(Real::INFINITY, Real::INFINITY));
-        assert!(approx_eq(Real::NEG_INFINITY, Real::NEG_INFINITY));
-        assert!(!approx_eq(Real::INFINITY, Real::NEG_INFINITY));
-        assert!(!approx_eq(Real::INFINITY, 1.0));
+    fn adaptive_infinity_equal_to_itself() {
+        assert_fuzzy_eq!(Real::INFINITY, Real::INFINITY);
+        assert_fuzzy_eq!(Real::NEG_INFINITY, Real::NEG_INFINITY);
+    }
+
+    #[test]
+    fn adaptive_opposite_infinities_not_equal() {
+        assert_fuzzy_ne!(Real::INFINITY, Real::NEG_INFINITY);
+        assert_fuzzy_ne!(Real::INFINITY, 1.0);
     }
 
     #[test]
     fn adaptive_nan_never_equal() {
         let nan = Real::NAN;
-        assert!(!approx_eq(nan, nan));
-        assert!(!approx_eq(nan, 0.0));
-        assert!(!approx_eq(0.0, nan));
+        assert_fuzzy_ne!(nan, nan);
+        assert_fuzzy_ne!(nan, 0.0);
+        assert_fuzzy_ne!(0.0_f64, nan);
     }
 
     #[test]
     fn adaptive_near_zero_uses_absolute() {
-        assert!(approx_eq(0.0, EPSILON * 0.5));
-        assert!(!approx_eq(0.0, EPSILON * 2.0));
+        assert_fuzzy_eq!(0.0_f64, EPSILON * 0.5);
+        assert_fuzzy_ne!(0.0_f64, EPSILON * 2.0);
     }
 
     #[test]
     fn adaptive_large_values_use_relative() {
         let a = 1_000_000.0_f64;
-        assert!(approx_eq(a, a + a * EPSILON * 0.5));
-        assert!(!approx_eq(a, a + a * EPSILON * 2.0));
+        assert!(approx_eq_rel(a, a + a * EPSILON * 0.5, EPSILON));
+        assert!(!approx_eq_rel(a, a + a * EPSILON * 2.0, EPSILON));
     }
 
     #[test]
     fn adaptive_common_rounding_error() {
-        assert!(approx_eq(0.1 + 0.2, 0.3));
+        assert_fuzzy_eq!(0.1_f64 + 0.2, 0.3);
     }
 
     #[test]
     fn adaptive_symmetric() {
-        let pairs = [(0.0, EPSILON * 0.5), (1.0, 1.0 + EPSILON), (1000.0, 1000.0 + EPSILON * 500.0)];
+        let pairs =
+            [(0.0, EPSILON * 0.5), (1.0, 1.0 + EPSILON), (1000.0, 1000.0 + EPSILON * 500.0)];
         for (a, b) in pairs {
-            assert_eq!(approx_eq(a, b), approx_eq(b, a));
+            assert_eq!(fuzzy_eq!(a, b), fuzzy_eq!(b, a));
         }
     }
 
     #[test]
     fn adaptive_opposite_large_values_not_equal() {
-        assert!(!approx_eq(1e6, -1e6));
+        assert_fuzzy_ne!(1e6_f64, -1e6);
     }
 }

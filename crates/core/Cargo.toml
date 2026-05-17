@@ -5,3 +5,6 @@ edition.workspace = true
 
 [dependencies]
 rtc_shared.workspace = true
+
+[lints]
+workspace = true

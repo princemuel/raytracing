@@ -73,12 +73,12 @@ impl From<RangeInclusive<Real>> for Interval {
 
 #[cfg(test)]
 mod tests {
-    use rtc_shared::{EPSILON, approx_eq_abs};
+    use rtc_shared::assert_fuzzy_eq;
 
     use super::*;
 
     #[test]
-    fn test_empty_interval() {
+    fn scenario_empty_interval() {
         let i = Interval::empty();
         assert!(i.is_empty());
         assert!(i.size() < 0.0);
@@ -86,12 +86,12 @@ mod tests {
     }
 
     #[test]
-    fn test_default_is_empty() {
+    fn scenario_default_is_empty() {
         assert_eq!(Interval::default(), Interval::empty());
     }
 
     #[test]
-    fn test_universe_interval() {
+    fn scenario_universe_interval() {
         let i = Interval::universe();
         assert!(i.contains(0.0));
         assert!(i.contains(Real::MAX));
@@ -100,7 +100,7 @@ mod tests {
     }
 
     #[test]
-    fn test_contains() {
+    fn scenario_contains() {
         let i = Interval::new(0.0, 10.0);
         assert!(i.contains(0.0));
         assert!(i.contains(5.0));
@@ -110,7 +110,7 @@ mod tests {
     }
 
     #[test]
-    fn test_surrounds() {
+    fn scenario_surrounds() {
         let i = Interval::new(0.0, 10.0);
         assert!(!i.surrounds(0.0));
         assert!(i.surrounds(5.0));
@@ -119,23 +119,24 @@ mod tests {
     }
 
     #[test]
-    fn test_clamp() {
+    fn scenario_clamp() {
         let i = Interval::new(0.0, 10.0);
-        assert!(approx_eq_abs(i.clamp(-5.0), 0.0, EPSILON));
-        assert!(approx_eq_abs(i.clamp(5.0), 5.0, EPSILON));
-        assert!(approx_eq_abs(i.clamp(15.0), 10.0, EPSILON));
+        assert_fuzzy_eq!(i.clamp(-5.0), 0.0);
+        assert_fuzzy_eq!(i.clamp(5.0), 5.0);
+        assert_fuzzy_eq!(i.clamp(15.0), 10.0);
     }
 
     #[test]
-    fn test_from_tuple() {
+    fn scenario_from_tuple() {
         let i = Interval::from((0.0, 10.0));
-        assert!(approx_eq_abs(i.min, 0.0, EPSILON));
-        assert!(approx_eq_abs(i.max, 10.0, EPSILON));
+        assert_fuzzy_eq!(i.min, 0.0);
+        assert_fuzzy_eq!(i.max, 10.0);
     }
+
     #[test]
-    fn test_from_inclusive_range() {
+    fn scenario_from_inclusive_range() {
         let i = Interval::from(0.0..=10.0);
-        assert!(approx_eq_abs(i.min, 0.0, EPSILON));
-        assert!(approx_eq_abs(i.max, 10.0, EPSILON));
+        assert_fuzzy_eq!(i.min, 0.0);
+        assert_fuzzy_eq!(i.max, 10.0);
     }
 }

@@ -8,6 +8,7 @@
 //! use rtc_core::prelude::*;
 //! ```
 #![feature(const_trait_impl)]
+#![feature(const_ops)]
 
 pub mod camera;
 pub mod color;

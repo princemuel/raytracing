@@ -20,7 +20,7 @@ impl HitRecord {
     /// Sets the normal relative to the ray direction.
     /// `outward_normal` must be unit length.
     pub fn set_face_normal(&mut self, ray: Ray, outward_normal: Vec3) {
-        self.is_front_face = ray.direction().dot(outward_normal) < 0.0;
+        self.is_front_face = ray.direction.dot(outward_normal) < 0.0;
         self.normal = if self.is_front_face { outward_normal } else { -outward_normal };
     }
 }
@@ -29,9 +29,12 @@ impl HitRecord {
 pub struct HittableList(Vec<Arc<dyn Hittable>>);
 
 impl HittableList {
+    #[must_use]
     pub fn new() -> Self { Self::default() }
 
-    pub fn objects(&self) -> impl Iterator<Item = &dyn Hittable> { self.0.iter().map(|o| o.as_ref()) }
+    pub fn objects(&self) -> impl Iterator<Item = &dyn Hittable> {
+        self.0.iter().map(AsRef::as_ref)
+    }
 
     pub fn add(&mut self, object: Arc<dyn Hittable>) { self.0.push(object); }
 
