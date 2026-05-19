@@ -50,9 +50,9 @@ impl Hittable for HittableList {
         let mut result = None;
 
         for object in &self.0 {
-            if let Some(rec) = object.hit(ray, Interval { min: t.min, max: closest }) {
-                closest = rec.t;
-                result = Some(rec);
+            if let Some(record) = object.hit(ray, Interval::new(t.min, closest)) {
+                closest = record.t;
+                result = Some(record);
             }
         }
 
