@@ -4,12 +4,12 @@ use rtc_core::prelude::*;
 
 fn main() -> io::Result<()> {
     // World
-    let world = HittableList::from(vec![
+    let world = Hittables::from(vec![
         Sphere::new(Point3::NEG_Z, 0.5),
         Sphere::new(point3(0, -100.5, -1), 100.0),
     ]);
     // Camera
-    let camera = Camera { aspect_ratio: 16.0 / 9.0, image_width: 400 };
 
+    let camera = Camera { aspect_ratio: 16.0 / 9.0, image_width: 400, ..Default::default() };
     camera.render(&world)
 }

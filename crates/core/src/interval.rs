@@ -14,20 +14,21 @@ pub struct Interval {
 }
 
 impl Interval {
+    /// An interval containing no values (`min > max`).
+    pub const EMPTY: Self = Self { min: Real::INFINITY, max: Real::NEG_INFINITY };
+    /// An interval containing all real numbers.
+    pub const UNIVERSE: Self = Self { min: Real::NEG_INFINITY, max: Real::INFINITY };
+
     #[must_use]
     pub const fn new(min: Real, max: Real) -> Self { Self { min, max } }
-
-    /// An interval containing no values (`min > max`).
-    #[must_use]
-    pub const fn empty() -> Self { Self { min: Real::INFINITY, max: Real::NEG_INFINITY } }
-
-    /// An interval containing all real numbers.
-    #[must_use]
-    pub const fn universe() -> Self { Self { min: Real::NEG_INFINITY, max: Real::INFINITY } }
 
     /// Raw size (`max - min`). Negative for empty intervals.
     #[must_use]
     pub const fn size(&self) -> Real { self.max - self.min }
+
+    /// Clamps `x` to `[min, max]`.
+    #[must_use]
+    pub const fn clamp(&self, x: Real) -> Real { x.clamp(self.min, self.max) }
 
     /// Returns `true` if `x` is within `[min, max]` (inclusive).
     #[must_use]
@@ -37,18 +38,8 @@ impl Interval {
     #[must_use]
     pub const fn surrounds(&self, x: Real) -> bool { self.min < x && x < self.max }
 
-    /// Clamps `x` to `[min, max]`.
-    #[must_use]
-    pub const fn clamp(&self, x: Real) -> Real { x.clamp(self.min, self.max) }
-
     #[must_use]
     pub const fn is_empty(&self) -> bool { self.min > self.max }
-
-    #[must_use]
-    pub const fn is_finite(&self) -> bool { self.min.is_finite() && self.max.is_finite() }
-
-    #[must_use]
-    pub const fn is_valid(&self) -> bool { !self.min.is_nan() && !self.max.is_nan() }
 
     /// Note: uses exact float equality against sentinel constants.
     #[must_use]
@@ -57,10 +48,10 @@ impl Interval {
     }
 }
 
-/// Defaults to `empty()`.
-/// Use `Interval::universe()` explicitly to accept all values.
+/// Defaults to `EMPTY`.
+/// Use `Interval::UNIVERSE` explicitly to accept all values.
 impl Default for Interval {
-    fn default() -> Self { Self::empty() }
+    fn default() -> Self { Self::EMPTY }
 }
 
 impl From<(Real, Real)> for Interval {
@@ -79,7 +70,7 @@ mod tests {
 
     #[test]
     fn scenario_empty_interval() {
-        let i = Interval::empty();
+        let i = Interval::EMPTY;
         assert!(i.is_empty());
         assert!(i.size() < 0.0);
         assert!(!i.contains(0.0));
@@ -87,12 +78,12 @@ mod tests {
 
     #[test]
     fn scenario_default_is_empty() {
-        assert_eq!(Interval::default(), Interval::empty());
+        assert_eq!(Interval::default(), Interval::EMPTY);
     }
 
     #[test]
     fn scenario_universe_interval() {
-        let i = Interval::universe();
+        let i = Interval::UNIVERSE;
         assert!(i.contains(0.0));
         assert!(i.contains(Real::MAX));
         assert!(i.contains(Real::MIN));

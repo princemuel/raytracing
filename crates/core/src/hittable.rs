@@ -2,11 +2,7 @@ use std::sync::Arc;
 
 use rtc_shared::Real;
 
-use crate::prelude::{Interval, Point3, Ray, Vec3};
-
-pub trait Hittable: Send + Sync {
-    fn hit(&self, ray: Ray, t: Interval) -> Option<HitRecord>;
-}
+use crate::prelude::{Interval, Point3, Ray, Vec3, interval};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct HitRecord {
@@ -18,17 +14,30 @@ pub struct HitRecord {
 
 impl HitRecord {
     /// Sets the normal relative to the ray direction.
-    /// `outward_normal` must be unit length.
-    pub fn set_face_normal(&mut self, ray: Ray, outward_normal: Vec3) {
-        self.is_front_face = ray.direction.dot(outward_normal) < 0.0;
-        self.normal = if self.is_front_face { outward_normal } else { -outward_normal };
+    ///
+    /// The parameter `outward_normal` is assumed to have unit length.
+    pub fn set_face_normal(&mut self, r: &Ray, outward_normal: Vec3) {
+        (self.is_front_face, self.normal) = face_normal(r, outward_normal);
+    }
+
+    /// Sets the normal relative to the ray direction.
+    ///
+    /// The parameter `outward_normal` is assumed to have unit length.
+    #[must_use]
+    pub fn with_face_normal(mut self, ray: &Ray, outward_normal: Vec3) -> Self {
+        (self.is_front_face, self.normal) = face_normal(ray, outward_normal);
+        self
     }
 }
 
-#[derive(Clone, Default)]
-pub struct HittableList(Vec<Arc<dyn Hittable>>);
+pub trait Hittable: Send + Sync {
+    fn hit(&self, r: Ray, t: Interval) -> Option<HitRecord>;
+}
 
-impl HittableList {
+#[derive(Clone, Default)]
+pub struct Hittables(Vec<Arc<dyn Hittable>>);
+
+impl Hittables {
     pub fn add(&mut self, object: Arc<dyn Hittable>) { self.0.push(object); }
 
     pub fn clear(&mut self) { self.0.clear(); }
@@ -44,50 +53,60 @@ impl HittableList {
     }
 }
 
-impl Hittable for HittableList {
-    fn hit(&self, ray: Ray, t: Interval) -> Option<HitRecord> {
+impl Hittable for Hittables {
+    fn hit(&self, r: Ray, t: Interval) -> Option<HitRecord> {
         let mut closest = t.max;
-        let mut result = None;
+        let mut hit_record = None;
 
         for object in &self.0 {
-            if let Some(record) = object.hit(ray, Interval::new(t.min, closest)) {
+            if let Some(record) = object.hit(r, interval(t.min, closest)) {
                 closest = record.t;
-                result = Some(record);
+                hit_record = Some(record);
             }
         }
 
-        result
+        hit_record
     }
 }
 
-impl FromIterator<Arc<dyn Hittable>> for HittableList {
+impl FromIterator<Arc<dyn Hittable>> for Hittables {
     fn from_iter<I: IntoIterator<Item = Arc<dyn Hittable>>>(iter: I) -> Self {
         Self(iter.into_iter().collect())
     }
 }
 
 impl Hittable for Arc<dyn Hittable> {
-    fn hit(&self, ray: Ray, t: Interval) -> Option<HitRecord> { self.as_ref().hit(ray, t) }
+    fn hit(&self, r: Ray, t: Interval) -> Option<HitRecord> { self.as_ref().hit(r, t) }
 }
 
 #[expect(clippy::as_conversions, trivial_casts)]
-impl<T: Hittable + 'static> From<Vec<T>> for HittableList {
+impl<T: Hittable + 'static> From<Vec<T>> for Hittables {
     fn from(v: Vec<T>) -> Self {
         Self(v.into_iter().map(|h| Arc::new(h) as Arc<dyn Hittable>).collect())
     }
 }
 
-impl IntoIterator for HittableList {
+impl IntoIterator for Hittables {
     type IntoIter = std::vec::IntoIter<Self::Item>;
     type Item = Arc<dyn Hittable>;
 
     fn into_iter(self) -> Self::IntoIter { self.0.into_iter() }
 }
 
-impl<'a> IntoIterator for &'a HittableList {
+impl<'a> IntoIterator for &'a Hittables {
     type Item = &'a dyn Hittable;
 
     type IntoIter = impl Iterator<Item = Self::Item> + 'a;
 
     fn into_iter(self) -> Self::IntoIter { self.iter() }
+}
+
+/// Returns `(is_front_face, normal)` given a ray and outward normal.
+///
+/// The parameter `outward_normal` is assumed to have unit length.
+#[must_use]
+pub fn face_normal(ray: &Ray, outward_normal: Vec3) -> (bool, Vec3) {
+    let is_front_face = ray.direction.dot(outward_normal) < 0.0;
+    let normal = if is_front_face { outward_normal } else { -outward_normal };
+    (is_front_face, normal)
 }

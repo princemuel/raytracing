@@ -1,10 +1,11 @@
+use core::fmt;
 use core::iter::{Product, Sum};
-use core::ops::{Add, Div, Mul, Sub};
+use core::ops::{Add, AddAssign, Div, Mul, Sub};
 use core::str::FromStr;
 
 use rtc_shared::{FuzzyEq as _, Real};
 
-use crate::prelude::Vec3;
+use crate::prelude::{Interval, Vec3};
 
 #[inline]
 pub fn color(r: impl Into<Real>, g: impl Into<Real>, b: impl Into<Real>) -> Color3 {
@@ -17,9 +18,6 @@ pub struct Color3 {
     pub g: Real,
     pub b: Real,
 }
-
-const BYTE_TO_FLOAT: Real = 1.0 / 255.0;
-const FLOAT_TO_BYTE: Real = 256.0;
 
 impl Color3 {
     pub const BLACK: Self = Self::splat(0.0);
@@ -44,28 +42,36 @@ impl PartialEq for Color3 {
     }
 }
 
+const BYTE_TO_FLOAT: Real = 1.0 / 255.0;
+const FLOAT_TO_BYTE: Real = 256.0;
+const INTENSITY: Interval = Interval::new(0.0, 0.999);
+
 #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::as_conversions)]
 impl From<Color3> for [u8; 3] {
-    // clamp(0.0, 0.999) * 256.0 is always in [0.0, 255.744]. the cast is safe
+    // INTENSITY.clamp(v) is in [0.0, 0.999], so * 256.0 = [0.0, 255.744].
     fn from(c: Color3) -> Self {
-        [c.r, c.g, c.b].map(|v| (v.clamp(0.0, 0.999) * FLOAT_TO_BYTE) as u8)
+        [c.r, c.g, c.b].map(|v| (INTENSITY.clamp(v) * FLOAT_TO_BYTE) as u8)
     }
 }
 
-impl core::fmt::Display for Color3 {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl fmt::Display for Color3 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let [r, g, b] = <[u8; 3]>::from(*self);
         write!(f, "{r} {g} {b}")
     }
 }
 
+impl fmt::LowerHex for Color3 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let [r, g, b] = <[u8; 3]>::from(*self);
+        write!(f, "{r:02x}{g:02x}{b:02x}")
+    }
+}
+
 impl From<[u8; 3]> for Color3 {
     fn from([r, g, b]: [u8; 3]) -> Self {
-        Self::new(
-            Real::from(r) * BYTE_TO_FLOAT,
-            Real::from(g) * BYTE_TO_FLOAT,
-            Real::from(b) * BYTE_TO_FLOAT,
-        )
+        let [r, g, b] = [r, g, b].map(|v| Real::from(v) * BYTE_TO_FLOAT);
+        Self::new(r, g, b)
     }
 }
 
@@ -76,39 +82,47 @@ impl From<(u8, u8, u8)> for Color3 {
 impl FromStr for Color3 {
     type Err = String;
 
+    /// Parses a CSS-style hex colour string e.g. `#FF8000` or `#ff8000`.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let hex = s
             .strip_prefix('#')
-            .ok_or_else(|| format!("hex color must start with '#', got: {s}"))?;
+            .filter(|h| h.len() == 6 && h.is_ascii())
+            .ok_or_else(|| format!("expected '#RRGGBB', got: {s}"))?;
 
-        if hex.len() != 6 {
-            return Err(format!("hex color must be 7 chars (#RRGGBB), got: {s}"));
-        }
-
-        let parse = |slice: &str, ch| {
-            u8::from_str_radix(slice, 16)
-                .map_err(|_e| format!("invalid {ch} component '{slice}' (expected 00-FF)"))
+        let parse_channel = |slice, name| {
+            u8::from_str_radix(slice, 16).map_err(|e| {
+                format!("invalid {name} component '{slice}' (expected 00-FF): {e}")
+            })
         };
 
-        Ok(Self::from([
-            parse(&hex[0..2], "red")?,
-            parse(&hex[2..4], "green")?,
-            parse(&hex[4..6], "blue")?,
-        ]))
+        let (r, g, b) = (
+            parse_channel(&hex[..2], "red")?,
+            parse_channel(&hex[2..4], "green")?,
+            parse_channel(&hex[4..6], "blue")?,
+        );
+
+        Ok(Self::from([r, g, b]))
     }
 }
 
-impl Add for Color3 {
+impl const Add for Color3 {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self {
         Self::new(self.r + rhs.r, self.g + rhs.g, self.b + rhs.b)
     }
 }
+impl const AddAssign for Color3 {
+    fn add_assign(&mut self, rhs: Self) {
+        self.r += rhs.r;
+        self.g += rhs.g;
+        self.b += rhs.b;
+    }
+}
 
 /// Allows mapping a surface normal (Vec3 in [-1,1]) to a color.
 /// See "Ray Tracing in One Weekend", §6.1.
-impl Add<Vec3> for Color3 {
+impl const Add<Vec3> for Color3 {
     type Output = Self;
 
     fn add(self, rhs: Vec3) -> Self {
@@ -116,7 +130,7 @@ impl Add<Vec3> for Color3 {
     }
 }
 
-impl Sub for Color3 {
+impl const Sub for Color3 {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self {
@@ -124,7 +138,7 @@ impl Sub for Color3 {
     }
 }
 
-impl Mul for Color3 {
+impl const Mul for Color3 {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self {
@@ -132,13 +146,13 @@ impl Mul for Color3 {
     }
 }
 
-impl Mul<Real> for Color3 {
+impl const Mul<Real> for Color3 {
     type Output = Self;
 
     fn mul(self, rhs: Real) -> Self { rhs * self }
 }
 
-impl Mul<Color3> for Real {
+impl const Mul<Color3> for Real {
     type Output = Color3;
 
     fn mul(self, rhs: Color3) -> Color3 {
@@ -146,7 +160,7 @@ impl Mul<Color3> for Real {
     }
 }
 
-impl Div for Color3 {
+impl const Div for Color3 {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self {

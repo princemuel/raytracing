@@ -13,5 +13,6 @@ impl Ray {
     pub const fn new(origin: Point3, direction: Vec3) -> Self { Self { origin, direction } }
 
     #[must_use]
-    pub fn at(&self, t: Real) -> Point3 { self.origin + t * self.direction }
+    /// **P**(*t*)  = Q + *t***d**
+    pub const fn at(&self, t: Real) -> Point3 { self.origin + t * self.direction }
 }

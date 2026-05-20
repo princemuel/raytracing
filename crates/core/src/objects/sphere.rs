@@ -16,14 +16,14 @@ impl Sphere {
     }
 }
 impl Hittable for Sphere {
-    fn hit(&self, ray: Ray, t: Interval) -> Option<HitRecord> {
-        let origin_center = self.center - ray.origin;
+    fn hit(&self, r: Ray, t: Interval) -> Option<HitRecord> {
+        let origin_center = self.center - r.origin;
 
-        let a = ray.direction.length_squared();
-        let h = ray.direction.dot(origin_center);
+        let a = r.direction.length_squared();
+        let h = r.direction.dot(origin_center);
         let c = origin_center.length_squared() - self.radius * self.radius;
 
-        let discriminant: Real = h * h - a * c;
+        let discriminant = h * h - a * c;
 
         if discriminant < 0.0 {
             return None;
@@ -32,25 +32,18 @@ impl Hittable for Sphere {
         let sqrtd = discriminant.sqrt();
 
         // Find the nearest root that lies in the acceptable range
-        let root = {
+        let t = {
             let r1 = (h - sqrtd) / a;
-            if t.surrounds(r1) {
-                r1
-            } else {
+            t.surrounds(r1).then_some(r1).or_else(|| {
                 let r2 = (h + sqrtd) / a;
-                if t.surrounds(r2) {
-                    r2
-                } else {
-                    return None;
-                }
-            }
+                t.surrounds(r2).then_some(r2)
+            })?
         };
 
-        let p = ray.at(root);
+        let p = r.at(t);
         let outward_normal = (p - self.center) / self.radius;
-        let mut rec = HitRecord { p, t: root, ..Default::default() };
-        rec.set_face_normal(ray, outward_normal);
-
-        Some(rec)
+        let record =
+            HitRecord { p, t, ..Default::default() }.with_face_normal(&r, outward_normal);
+        Some(record)
     }
 }

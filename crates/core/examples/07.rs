@@ -7,7 +7,7 @@ use std::io::Write as _;
 use std::sync::Arc;
 
 use rtc_core::prelude::*;
-use rtc_shared::{INFINITY, Real};
+use rtc_shared::Real;
 
 fn main() -> io::Result<()> {
     // Image dimensions
@@ -20,7 +20,7 @@ fn main() -> io::Result<()> {
     let image_height = if image_height < 1 { 1 } else { image_height };
 
     // World
-    let mut world = HittableList::default();
+    let mut world = Hittables::default();
     world.add(Arc::new(Sphere::new(Point3::NEG_Z, 0.5)));
     world.add(Arc::new(Sphere::new(point3(0, -100.5, -1), 100.0)));
 
@@ -56,7 +56,7 @@ fn main() -> io::Result<()> {
             let ray_direction = pixel_center - camera_center;
             let ray = Ray::new(camera_center, ray_direction);
 
-            let color = if let Some(record) = world.hit(ray, interval(0, INFINITY)) {
+            let color = if let Some(record) = world.hit(ray, interval(0, Real::INFINITY)) {
                 0.5 * (Color3::WHITE + record.normal)
             } else {
                 let unit_direction = ray.direction.unit();

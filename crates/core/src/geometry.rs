@@ -2,26 +2,6 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub};
 
 use rtc_shared::Real;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Axis {
-    X,
-    Y,
-    Z,
-}
-
-impl Axis {
-    pub const ALL: [Self; 3] = [Self::X, Self::Y, Self::Z];
-
-    #[must_use]
-    pub const fn next(self) -> Self {
-        match self {
-            Self::X => Self::Y,
-            Self::Y => Self::Z,
-            Self::Z => Self::X,
-        }
-    }
-}
-
 #[inline]
 #[must_use]
 pub fn vec3(x: impl Into<Real>, y: impl Into<Real>, z: impl Into<Real>) -> Vec3 {
@@ -33,33 +13,6 @@ pub struct Vec3 {
     pub x: Real,
     pub y: Real,
     pub z: Real,
-}
-
-impl Vec3 {
-    #[must_use]
-    pub const fn new(x: Real, y: Real, z: Real) -> Self { Self { x, y, z } }
-
-    #[must_use]
-    pub const fn splat(value: Real) -> Self { Self { x: value, y: value, z: value } }
-
-    #[must_use]
-    pub const fn get(self, axis: Axis) -> Real {
-        match axis {
-            Axis::X => self.x,
-            Axis::Y => self.y,
-            Axis::Z => self.z,
-        }
-    }
-
-    // Kept for compatibility with book code and dot/cross readability
-    #[must_use]
-    pub const fn x(self) -> Real { self.x }
-
-    #[must_use]
-    pub const fn y(self) -> Real { self.y }
-
-    #[must_use]
-    pub const fn z(self) -> Real { self.z }
 }
 
 impl Vec3 {
@@ -79,6 +32,12 @@ impl Vec3 {
     pub const Y: Self = Self::new(0.0, 1.0, 0.0);
     pub const Z: Self = Self::new(0.0, 0.0, 1.0);
     pub const ZERO: Self = Self::splat(0.0);
+
+    #[must_use]
+    pub const fn new(x: Real, y: Real, z: Real) -> Self { Self { x, y, z } }
+
+    #[must_use]
+    pub const fn splat(v: Real) -> Self { Self { x: v, y: v, z: v } }
 }
 
 impl Vec3 {
@@ -87,6 +46,7 @@ impl Vec3 {
 
     #[must_use]
     pub const fn length_squared(self) -> Real {
+        // ? can i do this self.dot(self)
         self.x * self.x + self.y * self.y + self.z * self.z
     }
 
@@ -108,7 +68,7 @@ impl Vec3 {
     pub fn unit(self) -> Self { self / self.length() }
 }
 
-/// A point in 3D space. Alias for `Vec3`. not a distinct newtype.
+/// A point in 3D space. Alias for [`Vec3`]. not a distinct newtype.
 /// See "Ray Tracing in One Weekend" §3.
 pub type Point3 = Vec3;
 
@@ -123,30 +83,6 @@ impl core::fmt::Display for Vec3 {
         write!(f, "[{:.p$} {:.p$} {:.p$}]", self.x, self.y, self.z)
     }
 }
-
-// impl Index<usize> for Vec3 {
-//     type Output = Real;
-
-//     fn index(&self, index: usize) -> &Self::Output {
-//         match index {
-//             0 => &self.x,
-//             1 => &self.y,
-//             2 => &self.z,
-//             _ => panic!("Vec3 index {index} out of bounds (0..=2)"),
-//         }
-//     }
-// }
-
-// impl IndexMut<usize> for Vec3 {
-//     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-//         match index {
-//             0 => &mut self.x,
-//             1 => &mut self.y,
-//             2 => &mut self.z,
-//             _ => panic!("Vec3 index {index} out of bounds (0..=2)"),
-//         }
-//     }
-// }
 
 impl const Neg for Vec3 {
     type Output = Self;
