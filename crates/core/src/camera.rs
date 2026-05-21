@@ -57,7 +57,7 @@ impl Camera {
 
                 for _ in 0..self.samples_per_pixel {
                     let ray = self.get_ray(&mut rng, i.into(), j.into());
-                    pixel_color += Self::ray_color(ray, self.max_depth, world);
+                    pixel_color += Self::ray_color(&ray, self.max_depth, world);
                 }
 
                 writeln!(&mut out, "{}", cfg.pixel_samples_scale * pixel_color)?;
@@ -133,19 +133,25 @@ impl Camera {
         }
     }
 
-    fn ray_color(ray: Ray, depth: i32, world: &dyn Hittable) -> Color3 {
+    fn ray_color(ray: &Ray, depth: i32, world: &dyn Hittable) -> Color3 {
         // If we've exceeded the ray bounce limit, no more light is gathered
         if depth < 1 {
             return Color3::BLACK;
         }
 
-        if let Some(record) = world.hit(ray, interval(0, Real::INFINITY)) {
-            let direction = Vec3::random_on_hemi_vec(record.normal);
-            return 0.5 * Self::ray_color(Ray::new(record.p, direction), depth - 1, world);
+        if let Some(rec) = world.hit(&ray, interval(0.001, Real::INFINITY)) {
+            let mut scattered = Ray::default();
+            let mut attenuation = Color3::default();
+
+            if rec.material.scatter(&ray, &rec, &mut attenuation, &mut scattered) {
+                return attenuation * Self::ray_color(&scattered, depth - 1, world);
+            }
+
+            return Color3::BLACK;
         }
 
-        let unit_direction = ray.direction.unit();
-        let a = 0.5 * (unit_direction.y + 1.0);
+        let direction = ray.direction.unit();
+        let a = 0.5 * (direction.y + 1.0);
         (1.0 - a) * Color3::WHITE + a * color(0.5, 0.7, 1.0)
     }
 }

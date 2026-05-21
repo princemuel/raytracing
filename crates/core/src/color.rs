@@ -42,15 +42,24 @@ impl PartialEq for Color3 {
     }
 }
 
+#[must_use]
+pub fn linear_to_gamma(component: Real) -> Real {
+    if component > 0.0 { component.sqrt() } else { 0.0 }
+}
+
 const BYTE_TO_FLOAT: Real = 1.0 / 255.0;
 const FLOAT_TO_BYTE: Real = 256.0;
 const INTENSITY: Interval = Interval::new(0.0, 0.999);
 
 #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::as_conversions)]
 impl From<Color3> for [u8; 3] {
-    // INTENSITY.clamp(v) is in [0.0, 0.999], so * 256.0 = [0.0, 255.744].
     fn from(c: Color3) -> Self {
-        [c.r, c.g, c.b].map(|v| (INTENSITY.clamp(v) * FLOAT_TO_BYTE) as u8)
+        [c.r, c.g, c.b].map(|v| {
+            // Applies a linear to gamma  transform for gamma 2
+            let c = linear_to_gamma(v);
+            // INTENSITY.clamp(v) is in [0.0, 0.999], so * 256.0 = [0.0, 255.744].
+            (FLOAT_TO_BYTE * INTENSITY.clamp(c)) as u8
+        })
     }
 }
 

@@ -64,7 +64,18 @@ impl Vec3 {
     }
 
     #[must_use]
+    pub const fn reflect(self, normal: Self) -> Self {
+        self - (normal * (2.0 * self.dot(normal)))
+    }
+
+    #[must_use]
     pub fn unit(self) -> Self { self / self.length() }
+
+    pub const fn near_zero(&self) -> bool {
+        // Return true if the vector is close to zero in all dimensions.
+        const EPSILON: Real = 1e-8;
+        return self.x.abs() < EPSILON && self.y.abs() < EPSILON && self.z.abs() < EPSILON;
+    }
 
     #[must_use]
     pub fn random() -> Self {
@@ -83,7 +94,7 @@ impl Vec3 {
     }
 
     #[must_use]
-    pub fn random_unit_vec() -> Self {
+    pub fn random_unit() -> Self {
         const BLACKHOLE: Real = 1e-160;
         loop {
             let p = Self::random_w_range(-1.0, 1.0);
@@ -96,8 +107,8 @@ impl Vec3 {
     }
 
     #[must_use]
-    pub fn random_on_hemi_vec(normal: Self) -> Self {
-        let on_unit_sphere = Self::random_unit_vec();
+    pub fn random_on_hemisphere(normal: Self) -> Self {
+        let on_unit_sphere = Self::random_unit();
         if on_unit_sphere.dot(normal) > 0.0 { on_unit_sphere } else { -on_unit_sphere }
     }
 }

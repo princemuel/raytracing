@@ -16,3 +16,7 @@ impl Ray {
     /// **P**(*t*)  = Q + *t***d**
     pub const fn at(&self, t: Real) -> Point3 { self.origin + t * self.direction }
 }
+
+impl Default for Ray {
+    fn default() -> Self { Self { origin: Point3::ZERO, direction: Vec3::ZERO } }
+}

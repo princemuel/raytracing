@@ -1,22 +1,24 @@
+use std::sync::Arc;
+
 use rtc_shared::Real;
 
-use crate::prelude::{HitRecord, Hittable, Interval, Point3};
-use crate::ray::Ray;
+use crate::prelude::{HitRecord, Hittable, Interval, Material, Point3, Ray};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone)]
 pub struct Sphere {
     pub center: Point3,
     pub radius: Real,
+    pub material: Arc<dyn Material>,
 }
 
 impl Sphere {
     #[must_use]
-    pub const fn new(center: Point3, radius: Real) -> Self {
-        Self { center, radius: radius.max(0.0) }
+    pub const fn new(center: Point3, radius: Real, material: Arc<dyn Material>) -> Self {
+        Self { center, radius: radius.max(0.0), material }
     }
 }
 impl Hittable for Sphere {
-    fn hit(&self, r: Ray, t: Interval) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, t: Interval) -> Option<HitRecord> {
         let origin_center = self.center - r.origin;
 
         let a = r.direction.length_squared();
@@ -42,8 +44,13 @@ impl Hittable for Sphere {
 
         let p = r.at(t);
         let outward_normal = (p - self.center) / self.radius;
-        let record =
-            HitRecord { p, t, ..Default::default() }.with_face_normal(&r, outward_normal);
+
+        let mut record = HitRecord::new();
+        record.t = t;
+        record.p = p;
+        record.set_face_normal(&r, outward_normal);
+        record.material = Arc::clone(&self.material);
+
         Some(record)
     }
 }
