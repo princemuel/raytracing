@@ -1,8 +1,7 @@
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub};
 
-use rtc_shared::Real;
+use rtc_shared::{Real, random, random_w_range};
 
-#[inline]
 #[must_use]
 pub fn vec3(x: impl Into<Real>, y: impl Into<Real>, z: impl Into<Real>) -> Vec3 {
     Vec3::new(x.into(), y.into(), z.into())
@@ -66,6 +65,41 @@ impl Vec3 {
 
     #[must_use]
     pub fn unit(self) -> Self { self / self.length() }
+
+    #[must_use]
+    pub fn random() -> Self {
+        let mut rng = rand::rng();
+        Self::new(random(&mut rng), random(&mut rng), random(&mut rng))
+    }
+
+    #[must_use]
+    pub fn random_w_range(min: Real, max: Real) -> Self {
+        let mut rng = rand::rng();
+        Self::new(
+            random_w_range(&mut rng, min, max),
+            random_w_range(&mut rng, min, max),
+            random_w_range(&mut rng, min, max),
+        )
+    }
+
+    #[must_use]
+    pub fn random_unit_vec() -> Self {
+        const BLACKHOLE: Real = 1e-160;
+        loop {
+            let p = Self::random_w_range(-1.0, 1.0);
+            let len_sq = p.length_squared();
+            // ? NOTE: using < 2 instead of <= 1
+            if BLACKHOLE < len_sq && len_sq < 2.0 {
+                return p / len_sq.sqrt();
+            }
+        }
+    }
+
+    #[must_use]
+    pub fn random_on_hemi_vec(normal: Self) -> Self {
+        let on_unit_sphere = Self::random_unit_vec();
+        if on_unit_sphere.dot(normal) > 0.0 { on_unit_sphere } else { -on_unit_sphere }
+    }
 }
 
 /// A point in 3D space. Alias for [`Vec3`]. not a distinct newtype.

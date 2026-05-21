@@ -19,7 +19,7 @@ pub fn random(rng: &mut impl Rng) -> Real { rng.random() }
 
 /// Returns a random real in [min,max).
 #[must_use]
-pub fn random_range(rng: &mut impl Rng, min: Real, max: Real) -> Real {
+pub fn random_w_range(rng: &mut impl Rng, min: Real, max: Real) -> Real {
     debug_assert!(min <= max);
     min + (max - min) * rng.random::<Real>()
 }

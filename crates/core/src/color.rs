@@ -7,7 +7,7 @@ use rtc_shared::{FuzzyEq as _, Real};
 
 use crate::prelude::{Interval, Vec3};
 
-#[inline]
+#[must_use]
 pub fn color(r: impl Into<Real>, g: impl Into<Real>, b: impl Into<Real>) -> Color3 {
     Color3 { r: r.into(), g: g.into(), b: b.into() }
 }

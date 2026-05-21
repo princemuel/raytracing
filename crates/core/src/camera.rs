@@ -7,16 +7,20 @@ use crate::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Camera {
-    /// Ratio of image width over height
+    /// The ratio of image width over height
     pub aspect_ratio: Real,
-    /// Rendered image width in pixel count
+    /// The rendered image width in pixel count
     pub image_width: i32,
-    /// Count of random samples for each pixel
+    /// The count of random samples for each pixel
     pub samples_per_pixel: i32,
+    /// The maximum number of ray bounces into a scene
+    pub max_depth: i32,
 }
 
 impl Default for Camera {
-    fn default() -> Self { Self { aspect_ratio: 1.0, image_width: 100, samples_per_pixel: 10 } }
+    fn default() -> Self {
+        Self { aspect_ratio: 1.0, image_width: 100, samples_per_pixel: 10, max_depth: 10 }
+    }
 }
 
 struct CameraConfig {
@@ -53,7 +57,7 @@ impl Camera {
 
                 for _ in 0..self.samples_per_pixel {
                     let ray = self.get_ray(&mut rng, i.into(), j.into());
-                    pixel_color += Self::ray_color(ray, world);
+                    pixel_color += Self::ray_color(ray, self.max_depth, world);
                 }
 
                 writeln!(&mut out, "{}", cfg.pixel_samples_scale * pixel_color)?;
@@ -129,9 +133,15 @@ impl Camera {
         }
     }
 
-    fn ray_color(ray: Ray, world: &dyn Hittable) -> Color3 {
+    fn ray_color(ray: Ray, depth: i32, world: &dyn Hittable) -> Color3 {
+        // If we've exceeded the ray bounce limit, no more light is gathered
+        if depth < 1 {
+            return Color3::BLACK;
+        }
+
         if let Some(record) = world.hit(ray, interval(0, Real::INFINITY)) {
-            return 0.5 * (Color3::WHITE + record.normal);
+            let direction = Vec3::random_on_hemi_vec(record.normal);
+            return 0.5 * Self::ray_color(Ray::new(record.p, direction), depth - 1, world);
         }
 
         let unit_direction = ray.direction.unit();

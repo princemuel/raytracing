@@ -17,6 +17,6 @@ pub mod geometry;
 pub mod hittable;
 pub mod interval;
 pub mod material;
-pub mod objects;
 pub mod prelude;
 pub mod ray;
+pub mod sphere;
