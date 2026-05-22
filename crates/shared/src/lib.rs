@@ -17,7 +17,7 @@ pub const PI: Real = f64::consts::PI;
 #[must_use]
 pub fn random(rng: &mut impl Rng) -> Real { rng.random() }
 
-/// Returns a random real in [min,max).
+/// Returns a random real in [min,max].
 #[must_use]
 pub fn random_w_range(rng: &mut impl Rng, min: Real, max: Real) -> Real {
     debug_assert!(min <= max);

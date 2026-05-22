@@ -1,4 +1,4 @@
-use rtc_shared::Real;
+use rtc_shared::{Real, random};
 
 use crate::prelude::{Color3, HitRecord, Ray, Vec3};
 
@@ -84,22 +84,34 @@ impl Material for Dielectric {
         attenuation: &mut Color3,
         scattered: &mut Ray,
     ) -> bool {
+        let mut rng = rand::rng();
+
         *attenuation = Color3::WHITE;
-        let refract_idx =
+        let refraction_idx =
             if rec.is_front_face { self.refract_idx.recip() } else { self.refract_idx };
 
         let unit_direction = ray_in.direction.unit();
         let cos_theta = (-unit_direction.dot(rec.normal)).min(1.0);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
-        let cannot_refract = refract_idx * sin_theta > 1.0;
-        let direction = if cannot_refract {
-            unit_direction.reflect(rec.normal)
-        } else {
-            unit_direction.refract(rec.normal, refract_idx)
-        };
+        let cannot_refract = refraction_idx * sin_theta > 1.0;
+
+        let direction =
+            if cannot_refract || reflectance(cos_theta, refraction_idx) > random(&mut rng) {
+                unit_direction.reflect(rec.normal)
+            } else {
+                unit_direction.refract(rec.normal, refraction_idx)
+            };
 
         *scattered = Ray::new(rec.p, direction);
 
         true
     }
+}
+
+/// use Schlick's approximation for reflectance
+#[must_use]
+pub fn reflectance(cosine: Real, refraction_idx: Real) -> Real {
+    let mut r0 = (1.0 - refraction_idx) / (1.0 + refraction_idx);
+    r0 *= r0;
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
 }
