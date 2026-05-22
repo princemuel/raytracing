@@ -15,11 +15,28 @@ pub struct Camera {
     pub samples_per_pixel: i32,
     /// The maximum number of ray bounces into a scene
     pub max_depth: i32,
+    /// The vertical view angle (field of view) in degrees
+    pub vfov: i32,
+    /// The point the camera is looking from
+    pub lookfrom: Point3,
+    /// The point the camera is looking at
+    pub lookat: Point3,
+    /// The camera-relative "up" direction
+    pub vup: Vec3,
 }
 
 impl Default for Camera {
     fn default() -> Self {
-        Self { aspect_ratio: 1.0, image_width: 100, samples_per_pixel: 10, max_depth: 10 }
+        Self {
+            aspect_ratio: 1.0,
+            image_width: 100,
+            samples_per_pixel: 10,
+            max_depth: 10,
+            vfov: 90,
+            lookfrom: Point3::ZERO,
+            lookat: Point3::NEG_Z,
+            vup: Vec3::Y,
+        }
     }
 }
 
@@ -32,10 +49,16 @@ struct CameraConfig {
     center: Point3,
     // The location of pixel 0, 0
     pixel00_loc: Point3,
-    ///    Offset to pixel to the right
+    /// The offset to pixel to the right
     pixel_du: Vec3,
-    /// Offset to pixel below
+    /// The offset to pixel below
     pixel_dv: Vec3,
+    /// The camera frame basis vector `u`
+    u: Vec3,
+    /// The camera frame basis vector `v`
+    v: Vec3,
+    /// The camera frame basis vector `w`
+    w: Vec3,
 }
 
 impl Camera {
@@ -99,25 +122,33 @@ impl Camera {
         let pixel_samples_scale = 1.0 / samples_per_pixel;
 
         let center = Point3::ZERO;
+
         // Determine viewport dimensions.
-        let focal_length = 1.0;
-        let vh = 2.0;
+        let focal_length = (self.lookfrom - self.lookat).length();
+        let theta = Real::from(self.vfov).to_radians();
+        let h = (theta / 2.0).tan();
+        let vh = 2.0 * h * focal_length;
         let vw = vh * (image_width / image_height);
 
+        // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
+        let w = (self.lookfrom - self.lookat).unit();
+        let u = self.vup.cross(w).unit();
+        let v = w.cross(u);
+
         // vector across viewport horizontal edge
-        let viewport_u = vec3(vw, 0, 0);
+        let viewport_u = vw * u;
         // vector down viewport vertical edge
-        let viewport_v = vec3(0, -vh, 0);
+        let viewport_v = vh * -v;
 
         // Calculate the horizontal and vertical delta vectors from pixel to pixel.
         let pixel_du = viewport_u / image_width;
         let pixel_dv = viewport_v / image_height;
 
-        // Calcuralte the location of the upper left pixel
+        // Calculate the location of the upper left pixel
         // vec3(0, 0, focal_length) == Vec3::Z when focal_length = 1.0
-        let viewport_top_left =
-            center - vec3(0, 0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
-        let pixel00_loc = viewport_top_left + 0.5 * (pixel_du + pixel_dv);
+        let viewport_upper_left =
+            center - (focal_length * w) - viewport_u / 2.0 - viewport_v / 2.0;
+        let pixel00_loc = viewport_upper_left + 0.5 * (pixel_du + pixel_dv);
 
         #[expect(clippy::cast_possible_truncation, clippy::as_conversions)]
         // max(1.0) and round() guarantee this is a positive integer. cast is safe
@@ -130,6 +161,9 @@ impl Camera {
             pixel00_loc,
             pixel_du,
             pixel_dv,
+            u,
+            v,
+            w,
         }
     }
 
