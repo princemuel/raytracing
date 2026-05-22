@@ -121,13 +121,13 @@ impl Camera {
 
         let pixel_samples_scale = 1.0 / samples_per_pixel;
 
-        let center = Point3::ZERO;
+        let center = self.lookfrom;
 
         // Determine viewport dimensions.
-        let focal_length = (self.lookfrom - self.lookat).length();
+        let focal_len = (self.lookfrom - self.lookat).length();
         let theta = Real::from(self.vfov).to_radians();
         let h = (theta / 2.0).tan();
-        let vh = 2.0 * h * focal_length;
+        let vh = 2.0 * h * focal_len;
         let vw = vh * (image_width / image_height);
 
         // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
@@ -145,9 +145,9 @@ impl Camera {
         let pixel_dv = viewport_v / image_height;
 
         // Calculate the location of the upper left pixel
-        // vec3(0, 0, focal_length) == Vec3::Z when focal_length = 1.0
+        // vec3(0, 0, focal_len) == Vec3::Z when focal_len = 1.0
         let viewport_upper_left =
-            center - (focal_length * w) - viewport_u / 2.0 - viewport_v / 2.0;
+            center - (focal_len * w) - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_du + pixel_dv);
 
         #[expect(clippy::cast_possible_truncation, clippy::as_conversions)]
