@@ -12,10 +12,12 @@ pub trait Material: Send + Sync {
     ) -> bool;
 }
 
+#[derive(Clone, Copy)]
 pub struct Lambertian {
     pub albedo: Color3,
 }
 impl Lambertian {
+    #[must_use]
     pub const fn new(albedo: Color3) -> Self { Self { albedo } }
 }
 impl Material for Lambertian {
@@ -37,11 +39,13 @@ impl Material for Lambertian {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Metal {
     pub albedo: Color3,
     pub fuzz: Real,
 }
 impl Metal {
+    #[must_use]
     pub const fn new(albedo: Color3, fuzz: Real) -> Self { Self { albedo, fuzz } }
 }
 impl Material for Metal {
@@ -58,5 +62,44 @@ impl Material for Metal {
         *attenuation = self.albedo;
 
         scattered.direction.dot(rec.normal) > 0.0
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Dielectric {
+    /// Refractive index in vacuum or air, or the ratio of the material's
+    /// refractive index over the refractive index of the enclosing media
+    pub refract_idx: Real,
+}
+impl Dielectric {
+    #[must_use]
+    pub const fn new(refract_idx: Real) -> Self { Self { refract_idx } }
+}
+
+impl Material for Dielectric {
+    fn scatter(
+        &self,
+        ray_in: &Ray,
+        rec: &HitRecord,
+        attenuation: &mut Color3,
+        scattered: &mut Ray,
+    ) -> bool {
+        *attenuation = Color3::WHITE;
+        let refract_idx =
+            if rec.is_front_face { self.refract_idx.recip() } else { self.refract_idx };
+
+        let unit_direction = ray_in.direction.unit();
+        let cos_theta = (-unit_direction.dot(rec.normal)).min(1.0);
+        let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
+        let cannot_refract = refract_idx * sin_theta > 1.0;
+        let direction = if cannot_refract {
+            unit_direction.reflect(rec.normal)
+        } else {
+            unit_direction.refract(rec.normal, refract_idx)
+        };
+
+        *scattered = Ray::new(rec.p, direction);
+
+        true
     }
 }

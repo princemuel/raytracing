@@ -48,7 +48,7 @@ impl Hittable for Sphere {
         let mut record = HitRecord::new();
         record.t = t;
         record.p = p;
-        record.set_face_normal(&r, outward_normal);
+        record.set_face_normal(r, outward_normal);
         record.material = Arc::clone(&self.material);
 
         Some(record)

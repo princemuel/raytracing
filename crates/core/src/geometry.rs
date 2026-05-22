@@ -7,6 +7,38 @@ pub fn vec3(x: impl Into<Real>, y: impl Into<Real>, z: impl Into<Real>) -> Vec3 
     Vec3::new(x.into(), y.into(), z.into())
 }
 
+// macro_rules! assert_equal_len {
+//     // The `tt` (token tree) designator is used for
+//     // operators and tokens.
+//     ($a:expr, $b:expr, $func:ident, $op:tt) => {
+//         assert!(
+//             $a.len() == $b.len(),
+//             "{:?}: dimension mismatch: {:?} {:?} {:?}",
+//             stringify!($func),
+//             ($a.len(),),
+//             stringify!($op),
+//             ($b.len(),)
+//         );
+//     };
+// }
+
+// macro_rules! op {
+//     ($func:ident, $bound:ident, $op:tt, $method:ident) => {
+//         fn $func<T: $bound<T, Output = T> + Copy>(xs: &mut Vec<T>, ys:
+// &Vec<T>) {             assert_equal_len!(xs, ys, $func, $op);
+
+//             for (x, y) in xs.iter_mut().zip(ys.iter()) {
+//                 *x = $bound::$method(*x, *y);
+//                 // *x = x.$method(*y);
+//             }
+//         }
+//     };
+// }
+
+// op!(add_assign, Add, +=, add);
+// op!(mul_assign, Mul, *=, mul);
+// op!(sub_assign, Sub, -=, sub);
+
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Vec3 {
     pub x: Real,
@@ -69,12 +101,22 @@ impl Vec3 {
     }
 
     #[must_use]
+    pub fn refract(self, normal: Self, etai_over_etat: Real) -> Self {
+        let cos_theta = (-self.dot(normal)).min(1.0);
+        let r_out_perp = etai_over_etat * (self + cos_theta * normal);
+        let r_out_parallel = -((1.0 - r_out_perp.length_squared()).abs()).sqrt() * normal;
+
+        r_out_perp + r_out_parallel
+    }
+
+    #[must_use]
     pub fn unit(self) -> Self { self / self.length() }
 
+    #[must_use]
     pub const fn near_zero(&self) -> bool {
         // Return true if the vector is close to zero in all dimensions.
         const EPSILON: Real = 1e-8;
-        return self.x.abs() < EPSILON && self.y.abs() < EPSILON && self.z.abs() < EPSILON;
+        self.x.abs() < EPSILON && self.y.abs() < EPSILON && self.z.abs() < EPSILON
     }
 
     #[must_use]

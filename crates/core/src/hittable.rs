@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use rtc_shared::Real;
 
+use crate::material::Dielectric;
 use crate::prelude::{Interval, Material, Point3, Ray, Vec3, interval};
 
 #[derive(Clone)]
@@ -25,7 +26,7 @@ impl HitRecord {
             normal: Vec3::ZERO,
             t: 0.0,
             is_front_face: false,
-            material: Arc::new(data),
+            material: Arc::new(Dielectric::new(0.0)),
         }
     }
 

@@ -139,11 +139,11 @@ impl Camera {
             return Color3::BLACK;
         }
 
-        if let Some(rec) = world.hit(&ray, interval(0.001, Real::INFINITY)) {
+        if let Some(rec) = world.hit(ray, interval(0.001, Real::INFINITY)) {
             let mut scattered = Ray::default();
             let mut attenuation = Color3::default();
 
-            if rec.material.scatter(&ray, &rec, &mut attenuation, &mut scattered) {
+            if rec.material.scatter(ray, &rec, &mut attenuation, &mut scattered) {
                 return attenuation * Self::ray_color(&scattered, depth - 1, world);
             }
 
