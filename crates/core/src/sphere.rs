@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use crate::prelude::{HitRecord, Hittable, Interval, Material, Point3, Ray};
+use crate::prelude::{HitRecord, Hittable, Interval, Material, Point3, Ray, Vec3};
 
 /// A sphere — the only primitive in Book 1.
 pub struct Sphere {
-    pub center: Point3,
-    /// Always ≥ 0 — negative radii are clamped on construction.
+    pub center: Ray,
+    /// Always ≥ 0. negative radii are clamped on construction.
     pub radius: f64,
     pub material: Arc<dyn Material>,
 }
@@ -13,17 +13,27 @@ pub struct Sphere {
 impl Sphere {
     #[inline]
     #[must_use]
-    pub fn new(center: Point3, radius: f64, material: Arc<dyn Material>) -> Self {
-        // Negative radius produces an inverted sphere (useful for hollow glass
-        // bubbles in Book 1 §10.5), so we clamp to 0 as the book does.
+    pub const fn new(
+        center_a: Point3,
+        center_b: Option<Point3>,
+        radius: f64,
+        material: Arc<dyn Material>,
+    ) -> Self {
+        let center = if let Some(center_b) = center_b {
+            Ray::new(center_a, center_b - center_a, None)
+        } else {
+            Ray::new(center_a, Vec3::ZERO, None)
+        };
+
         Self { center, radius: radius.max(0.0), material }
     }
 }
 
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t: Interval) -> Option<HitRecord> {
+        let center = self.center.at(ray.time);
         // Vector from ray origin to sphere centre: **oc** = C − O
-        let oc = self.center - ray.origin;
+        let oc = center - ray.origin;
 
         // Quadratic coefficients (simplified half-b form from §6.2):
         //   a  = |d|²
@@ -55,17 +65,17 @@ impl Hittable for Sphere {
         };
 
         let p = ray.at(t_hit);
-        let outward_normal = (p - self.center) / self.radius;
+        let outward_normal = (p - center) / self.radius;
 
-        let mut rec = HitRecord {
+        let mut record = HitRecord {
             p,
             t: t_hit,
             normal: outward_normal, // overwritten below
             is_front_face: false,   // overwritten below
             material: Arc::clone(&self.material),
         };
-        rec.set_face_normal(ray, outward_normal);
+        record.set_face_normal(ray, outward_normal);
 
-        Some(rec)
+        Some(record)
     }
 }
