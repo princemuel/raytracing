@@ -1,66 +1,82 @@
 use core::ops::RangeInclusive;
 
-use rtc_shared::Real;
-
+/// Convenience constructor.
 #[inline]
-pub fn interval(min: impl Into<Real>, max: impl Into<Real>) -> Interval {
+#[must_use]
+pub fn interval(min: impl Into<f64>, max: impl Into<f64>) -> Interval {
     Interval::new(min.into(), max.into())
 }
 
+/// A closed interval [min, max] over the floats.
+///
+/// `Interval::EMPTY` (min > max) is the canonical "no values" sentinel.
+///
+/// `Interval::UNIVERSE` covers all finite and infinite floats.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Interval {
-    pub min: Real,
-    pub max: Real,
+    pub min: f64,
+    pub max: f64,
 }
 
 impl Interval {
-    /// An interval containing no values (`min > max`).
-    pub const EMPTY: Self = Self { min: Real::INFINITY, max: Real::NEG_INFINITY };
-    /// An interval containing all real numbers.
-    pub const UNIVERSE: Self = Self { min: Real::NEG_INFINITY, max: Real::INFINITY };
+    /// Contains no values (`min > max`).
+    pub const EMPTY: Self = Self { min: f64::INFINITY, max: f64::NEG_INFINITY };
+    /// Contains every float.
+    pub const UNIVERSE: Self = Self { min: f64::NEG_INFINITY, max: f64::INFINITY };
 
+    #[inline]
     #[must_use]
-    pub const fn new(min: Real, max: Real) -> Self { Self { min, max } }
+    pub const fn new(min: f64, max: f64) -> Self { Self { min, max } }
 
-    /// Raw size (`max - min`). Negative for empty intervals.
+    /// Signed size (`max − min`). Negative for empty intervals.
+    #[inline]
     #[must_use]
-    pub const fn size(&self) -> Real { self.max - self.min }
+    pub const fn size(self) -> f64 { self.max - self.min }
 
-    /// Clamps `x` to `[min, max]`.
+    /// Clamps `x` into `[min, max]`.
+    #[inline]
     #[must_use]
-    pub const fn clamp(&self, x: Real) -> Real { x.clamp(self.min, self.max) }
+    pub const fn clamp(self, x: f64) -> f64 { x.clamp(self.min, self.max) }
 
-    /// Returns `true` if `x` is within `[min, max]` (inclusive).
+    /// `true` if `min <= x <= max` (inclusive).
+    #[inline]
     #[must_use]
-    pub const fn contains(&self, x: Real) -> bool { self.min <= x && x <= self.max }
+    pub const fn contains(self, x: f64) -> bool { self.min <= x && x <= self.max }
 
-    /// Returns `true` if `x` is strictly inside `(min, max)` (exclusive).
+    /// `true` if `min < x < max` (exclusive). used for hit-record filtering.
+    #[inline]
     #[must_use]
-    pub const fn surrounds(&self, x: Real) -> bool { self.min < x && x < self.max }
+    pub const fn surrounds(self, x: f64) -> bool { self.min < x && x < self.max }
 
+    #[inline]
     #[must_use]
-    pub const fn is_empty(&self) -> bool { self.min > self.max }
+    pub const fn is_empty(self) -> bool { self.min > self.max }
 
-    /// Note: uses exact float equality against sentinel constants.
+    /// Note: uses exact float equality against the sentinel constants.
+    #[inline]
     #[must_use]
-    pub const fn is_universe(&self) -> bool {
-        self.min == Real::NEG_INFINITY && self.max == Real::INFINITY
+    pub const fn is_universe(self) -> bool {
+        self.min == f64::NEG_INFINITY && self.max == f64::INFINITY
     }
 }
 
-/// Defaults to `EMPTY`.
-/// Use `Interval::UNIVERSE` explicitly to accept all values.
+/// Defaults to `EMPTY`. Use `Interval::UNIVERSE` explicitly to accept all
+/// values.
 impl Default for Interval {
     fn default() -> Self { Self::EMPTY }
 }
 
-impl From<(Real, Real)> for Interval {
-    fn from((min, max): (Real, Real)) -> Self { Self::new(min, max) }
+impl From<(f64, f64)> for Interval {
+    fn from((min, max): (f64, f64)) -> Self { Self::new(min, max) }
 }
 
-impl From<RangeInclusive<Real>> for Interval {
-    fn from(r: RangeInclusive<Real>) -> Self { Self::new(*r.start(), *r.end()) }
+impl From<RangeInclusive<f64>> for Interval {
+    fn from(r: RangeInclusive<f64>) -> Self { Self::new(*r.start(), *r.end()) }
 }
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
@@ -85,8 +101,8 @@ mod tests {
     fn scenario_universe_interval() {
         let i = Interval::UNIVERSE;
         assert!(i.contains(0.0));
-        assert!(i.contains(Real::MAX));
-        assert!(i.contains(Real::MIN));
+        assert!(i.contains(f64::MAX));
+        assert!(i.contains(f64::MIN));
         assert!(i.is_universe());
     }
 

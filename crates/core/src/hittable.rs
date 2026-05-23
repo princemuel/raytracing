@@ -1,102 +1,108 @@
 use std::sync::Arc;
 
-use rtc_shared::Real;
-
-use crate::material::Dielectric;
 use crate::prelude::{Interval, Material, Point3, Ray, Vec3, interval};
 
-#[derive(Clone)]
+/// All information about a ray–surface intersection.
 pub struct HitRecord {
+    /// Intersection point in world space.
     pub p: Point3,
+    /// Outward-facing surface normal at `p` (unit length).
     pub normal: Vec3,
-    pub t: Real,
+    /// Ray parameter *t* at the intersection.
+    pub t: f64,
+    /// The material of the intersected surface.
     pub material: Arc<dyn Material>,
+    /// `true` if the ray hit the front face of the surface.
     pub is_front_face: bool,
 }
 
-impl Default for HitRecord {
-    fn default() -> Self { Self::new() }
-}
-
 impl HitRecord {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            p: Point3::ZERO,
-            normal: Vec3::ZERO,
-            t: 0.0,
-            is_front_face: false,
-            material: Arc::new(Dielectric::new(0.0)),
-        }
-    }
-
-    /// Sets the normal relative to the ray direction.
-    ///
-    /// The parameter `outward_normal` is assumed to have unit length.
-    pub fn set_face_normal(&mut self, r: &Ray, outward_normal: Vec3) {
-        (self.is_front_face, self.normal) = face_normal(r, outward_normal);
-    }
-
-    /// Sets the normal relative to the ray direction.
-    ///
-    /// The parameter `outward_normal` is assumed to have unit length.
-    #[must_use]
-    pub fn with_face_normal(mut self, ray: &Ray, outward_normal: Vec3) -> Self {
-        (self.is_front_face, self.normal) = face_normal(ray, outward_normal);
-        self
+    /// Sets `normal` and `is_front_face` from the ray direction and the
+    /// geometry's outward normal.  `outward_normal` must be unit length.
+    #[inline]
+    pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: Vec3) {
+        self.is_front_face = ray.direction.dot(outward_normal) < 0.0;
+        self.normal = if self.is_front_face { outward_normal } else { -outward_normal };
     }
 }
+
+// ---------------------------------------------------------------------------
+// Hittable trait
+// ---------------------------------------------------------------------------
 
 pub trait Hittable: Send + Sync {
-    fn hit(&self, r: &Ray, t: Interval) -> Option<HitRecord>;
+    /// Returns the closest hit in the interval `t`, or `None`.
+    fn hit(&self, ray: &Ray, t: Interval) -> Option<HitRecord>;
 }
 
-#[derive(Clone, Default)]
+// ---------------------------------------------------------------------------
+// Hittables — a flat list of hittable objects
+// ---------------------------------------------------------------------------
+
+/// A scene is just an ordered list of [`Hittable`] objects.
+///
+/// Stores each object behind an `Arc<dyn Hittable>` so that objects can be
+/// cheaply shared between the scene and, e.g., motion-blur or instancing.
+#[derive(Default)]
 pub struct Hittables(Vec<Arc<dyn Hittable>>);
 
 impl Hittables {
+    #[inline]
     #[must_use]
-    pub const fn new() -> Self { Self(vec![]) }
+    pub fn new() -> Self { Self::default() }
 
+    #[inline]
     pub fn add(&mut self, object: Arc<dyn Hittable>) { self.0.push(object); }
 
+    #[inline]
     pub fn clear(&mut self) { self.0.clear(); }
 
+    #[inline]
     #[must_use]
-    pub const fn len(&self) -> usize { self.0.len() }
+    pub fn len(&self) -> usize { self.0.len() }
 
+    #[inline]
     #[must_use]
-    pub const fn is_empty(&self) -> bool { self.0.is_empty() }
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
 
-    pub fn iter(&self) -> impl Iterator<Item = &dyn Hittable> {
-        self.0.iter().map(AsRef::as_ref)
-    }
+    #[inline]
+    pub fn iter(&self) -> impl Iterator<Item = &dyn Hittable> { self.0.iter().map(Arc::as_ref) }
 }
 
 impl Hittable for Hittables {
-    fn hit(&self, r: &Ray, t: Interval) -> Option<HitRecord> {
-        let mut closest = t.max;
-        let mut hit_record = None;
-
-        for object in &self.0 {
-            if let Some(record) = object.hit(r, interval(t.min, closest)) {
-                closest = record.t;
-                hit_record = Some(record);
-            }
-        }
-
-        hit_record
+    fn hit(&self, ray: &Ray, t: Interval) -> Option<HitRecord> {
+        // Walk every object, shrinking the far-plane as we find closer hits.
+        // This is O(n) but sufficient for Book 1; Book 2 adds a BVH.
+        self.0
+            .iter()
+            .fold((t.max, None), |(closest, best), obj| {
+                if let Some(rec) = obj.hit(ray, interval(t.min, closest)) {
+                    (rec.t, Some(rec))
+                } else {
+                    (closest, best)
+                }
+            })
+            .1
     }
 }
+
+// ---------------------------------------------------------------------------
+// Blanket impl so Arc<dyn Hittable> is itself Hittable
+// ---------------------------------------------------------------------------
+
+impl Hittable for Arc<dyn Hittable> {
+    #[inline]
+    fn hit(&self, ray: &Ray, t: Interval) -> Option<HitRecord> { self.as_ref().hit(ray, t) }
+}
+
+// ---------------------------------------------------------------------------
+// Conversions
+// ---------------------------------------------------------------------------
 
 impl FromIterator<Arc<dyn Hittable>> for Hittables {
     fn from_iter<I: IntoIterator<Item = Arc<dyn Hittable>>>(iter: I) -> Self {
         Self(iter.into_iter().collect())
     }
-}
-
-impl Hittable for Arc<dyn Hittable> {
-    fn hit(&self, r: &Ray, t: Interval) -> Option<HitRecord> { self.as_ref().hit(r, t) }
 }
 
 #[expect(clippy::as_conversions, trivial_casts)]
@@ -119,14 +125,4 @@ impl<'a> IntoIterator for &'a Hittables {
     type IntoIter = impl Iterator<Item = Self::Item> + 'a;
 
     fn into_iter(self) -> Self::IntoIter { self.iter() }
-}
-
-/// Returns `(is_front_face, normal)` given a ray and outward normal.
-///
-/// The parameter `outward_normal` is assumed to have unit length.
-#[must_use]
-pub fn face_normal(ray: &Ray, outward_normal: Vec3) -> (bool, Vec3) {
-    let is_front_face = ray.direction.dot(outward_normal) < 0.0;
-    let normal = if is_front_face { outward_normal } else { -outward_normal };
-    (is_front_face, normal)
 }

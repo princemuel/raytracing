@@ -13,7 +13,7 @@ pub const PI: f64 = f64::consts::PI;
 /// Returns a random real in [0,1).
 #[inline]
 #[must_use]
-pub fn random(rng: &mut impl Rng) -> f64 { rng.random() }
+pub fn random(rng: &mut dyn Rng) -> f64 { rng.random() }
 
 /// Returns a random real in [min,max).
 ///
@@ -21,7 +21,7 @@ pub fn random(rng: &mut impl Rng) -> f64 { rng.random() }
 /// so the result is in `[min, max)`.
 #[inline]
 #[must_use]
-pub fn random_range(rng: &mut impl Rng, min: f64, max: f64) -> f64 {
+pub fn random_range(rng: &mut dyn Rng, min: f64, max: f64) -> f64 {
     debug_assert!(min <= max, "random_range: min ({min}) must be <= max ({max})");
     min + (max - min) * rng.random::<f64>()
 }

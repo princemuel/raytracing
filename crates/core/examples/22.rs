@@ -1,24 +1,25 @@
+//! Example 22 — dielectric / metal / Lambertian scene with depth-of-field.
 use std::io;
 use std::sync::Arc;
 
 use rtc_core::prelude::*;
 
 fn main() -> io::Result<()> {
-    let material_ground = Arc::new(Lambertian::new(color(0.8, 0.8, 0.0)));
-    let material_center = Arc::new(Lambertian::new(color(0.1, 0.2, 0.5)));
-    let material_left = Arc::new(Dielectric::new(1.5));
-    let material_bubble = Arc::new(Dielectric::new(1.0 / 1.5));
-    let material_right = Arc::new(Metal::new(color(0.8, 0.6, 0.2), 1.0));
+    let ground = Arc::new(Lambertian::new(color(0.8, 0.8, 0.0)));
+    let center = Arc::new(Lambertian::new(color(0.1, 0.2, 0.5)));
+    let left = Arc::new(Dielectric::new(1.5));
+    let bubble = Arc::new(Dielectric::new(1.0 / 1.5)); // hollow glass
+    let right = Arc::new(Metal::new(color(0.8, 0.6, 0.2), 1.0));
 
     let world = Hittables::from(vec![
-        Sphere::new(point3(0.0, -100.5, -1.0), 100.0, material_ground),
-        Sphere::new(point3(0.0, 0.0, -1.2), 0.5, material_center),
-        Sphere::new(point3(-1.0, 0.0, -1.0), 0.5, material_left),
-        Sphere::new(point3(-1.0, 0.0, -1.0), 0.4, material_bubble),
-        Sphere::new(point3(1.0, 0.0, -1.0), 0.5, material_right),
+        Sphere::new(point3(0.0, -100.5, -1.0), 100.0, ground),
+        Sphere::new(point3(0.0, 0.0, -1.2), 0.5, center),
+        Sphere::new(point3(-1.0, 0.0, -1.0), 0.5, left),
+        Sphere::new(point3(-1.0, 0.0, -1.0), 0.4, bubble),
+        Sphere::new(point3(1.0, 0.0, -1.0), 0.5, right),
     ]);
 
-    let camera = Camera {
+    Camera {
         aspect_ratio: 16.0 / 9.0,
         image_width: 400,
         samples_per_pixel: 100,
@@ -29,7 +30,6 @@ fn main() -> io::Result<()> {
         vup: Vec3::Y,
         defocus_angle: 10.0,
         focus_dist: 3.4,
-    };
-
-    camera.render(&world)
+    }
+    .render(&world)
 }

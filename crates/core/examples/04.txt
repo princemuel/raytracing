@@ -5,7 +5,7 @@ use std::io;
 use std::io::Write as _;
 
 use rtc_core::prelude::*;
-use rtc_shared::Real;
+
 
 fn main() -> io::Result<()> {
     // Image dimensions
@@ -14,12 +14,12 @@ fn main() -> io::Result<()> {
     let image_width = 400;
 
     // Calculate the image height, and ensure that it's at least 1
-    let image_height = (Real::from(image_width) / aspect_ratio) as i32;
+    let image_height = (f64::from(image_width) / aspect_ratio) as i32;
     let image_height = if image_height < 1 { 1 } else { image_height };
 
     // Camera
     let vh = 2.0;
-    let vw = vh * (Real::from(image_width) / Real::from(image_height));
+    let vw = vh * (f64::from(image_width) / f64::from(image_height));
     let camera_center = Point3::ZERO;
 
     // Calculate the vectors across the horizontal and down the vertical viewport
@@ -28,8 +28,8 @@ fn main() -> io::Result<()> {
     let viewport_v = vec3(0, -vh, 0);
 
     // Calcualte the horizontal and the vertical delta vectors from pixel to pixel
-    let pixel_du = viewport_u / Real::from(image_width);
-    let pixel_dv = viewport_v / Real::from(image_height);
+    let pixel_du = viewport_u / f64::from(image_width);
+    let pixel_dv = viewport_v / f64::from(image_height);
 
     // Calculate the location of the upper left pixel
     let viewport_top_left = camera_center - Vec3::Z - viewport_u / 2.0 - viewport_v / 2.0;
@@ -45,7 +45,7 @@ fn main() -> io::Result<()> {
 
         for i in 0..image_width {
             let pixel_center =
-                pixel00_loc + (Real::from(i) * pixel_du) + (Real::from(j) * pixel_dv);
+                pixel00_loc + (f64::from(i) * pixel_du) + (f64::from(j) * pixel_dv);
             let ray_direction = pixel_center - camera_center;
             let ray = Ray::new(camera_center, ray_direction);
 

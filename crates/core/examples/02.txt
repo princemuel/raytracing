@@ -2,7 +2,7 @@ use std::io;
 use std::io::Write as _;
 
 use rtc_core::prelude::*;
-use rtc_shared::Real;
+
 
 fn main() -> io::Result<()> {
     // Image dimensions
@@ -18,8 +18,8 @@ fn main() -> io::Result<()> {
         io::stderr().flush()?;
 
         for i in 0..image_width {
-            let r = Real::from(i) / Real::from(image_width - 1);
-            let g = Real::from(j) / Real::from(image_height - 1);
+            let r = f64::from(i) / f64::from(image_width - 1);
+            let g = f64::from(j) / f64::from(image_height - 1);
             let b = 0.0;
 
             let color = color(r, g, b);

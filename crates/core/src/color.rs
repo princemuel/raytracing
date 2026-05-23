@@ -1,23 +1,23 @@
 use core::fmt;
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Div, Mul, Sub};
-use core::str::FromStr;
 
 use rand::prelude::*;
-use rtc_shared::{FuzzyEq as _, Real, random, random_w_range};
+use rtc_shared::{FuzzyEq as _, random, random_range};
 
 use crate::prelude::{Interval, Vec3};
 
+#[inline]
 #[must_use]
-pub fn color(r: impl Into<Real>, g: impl Into<Real>, b: impl Into<Real>) -> Color3 {
+pub fn color(r: impl Into<f64>, g: impl Into<f64>, b: impl Into<f64>) -> Color3 {
     Color3 { r: r.into(), g: g.into(), b: b.into() }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Color3 {
-    pub r: Real,
-    pub g: Real,
-    pub b: Real,
+    pub r: f64,
+    pub g: f64,
+    pub b: f64,
 }
 
 impl Color3 {
@@ -30,25 +30,29 @@ impl Color3 {
     pub const WHITE: Self = Self::splat(1.0);
     pub const YELLOW: Self = Self::new(1.0, 1.0, 0.0);
 
+    #[inline]
     #[must_use]
-    pub const fn new(r: Real, g: Real, b: Real) -> Self { Self { r, g, b } }
+    pub const fn new(r: f64, g: f64, b: f64) -> Self { Self { r, g, b } }
 
+    #[inline]
     #[must_use]
-    pub const fn splat(v: Real) -> Self { Self { r: v, g: v, b: v } }
+    pub const fn splat(v: f64) -> Self { Self { r: v, g: v, b: v } }
 }
 
 impl Color3 {
+    #[inline]
     #[must_use]
-    pub fn random(mut rng: &mut impl Rng) -> Self {
-        Self::new(random(&mut rng), random(&mut rng), random(&mut rng))
+    pub fn random(rng: &mut dyn Rng) -> Self {
+        Self::new(random(rng), random(rng), random(rng))
     }
 
+    #[inline]
     #[must_use]
-    pub fn random_w_range(mut rng: &mut impl Rng, min: Real, max: Real) -> Self {
+    pub fn random_range(rng: &mut dyn Rng, min: f64, max: f64) -> Self {
         Self::new(
-            random_w_range(&mut rng, min, max),
-            random_w_range(&mut rng, min, max),
-            random_w_range(&mut rng, min, max),
+            random_range(rng, min, max),
+            random_range(rng, min, max),
+            random_range(rng, min, max),
         )
     }
 }
@@ -59,26 +63,54 @@ impl PartialEq for Color3 {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Gamma correction
+// ---------------------------------------------------------------------------
+
+/// Applies a gamma-2 (square-root) transfer function.
+///
+/// Linear values below zero are clamped to 0. they can arise from floating-
+/// point error and have no physical meaning.
+#[inline]
 #[must_use]
-pub fn linear_to_gamma(component: Real) -> Real {
+pub fn linear_to_gamma(component: f64) -> f64 {
     if component > 0.0 { component.sqrt() } else { 0.0 }
 }
 
-const BYTE_TO_FLOAT: Real = 1.0 / 255.0;
-const FLOAT_TO_BYTE: Real = 256.0;
+// ---------------------------------------------------------------------------
+// Conversion to/from [u8; 3]
+// ---------------------------------------------------------------------------
+
+/// Output intensity clamped to [0.0, 0.999] before scaling to [0, 255].
+///
+/// The 0.999 upper bound prevents `(v * 256.0) as u8` from wrapping to 0
+/// when v rounds to exactly 1.0.
 const INTENSITY: Interval = Interval::new(0.0, 0.999);
+const FLOAT_TO_BYTE: f64 = 256.0;
+const BYTE_TO_FLOAT: f64 = 1.0 / 255.0;
 
 #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::as_conversions)]
 impl From<Color3> for [u8; 3] {
     fn from(c: Color3) -> Self {
-        [c.r, c.g, c.b].map(|v| {
-            // Applies a linear to gamma  transform for gamma 2
-            let c = linear_to_gamma(v);
-            // INTENSITY.clamp(v) is in [0.0, 0.999], so * 256.0 = [0.0, 255.744].
-            (FLOAT_TO_BYTE * INTENSITY.clamp(c)) as u8
-        })
+        // Apply gamma correction then map [0, 0.999] → [0, 255].
+        [c.r, c.g, c.b].map(|v| (FLOAT_TO_BYTE * INTENSITY.clamp(linear_to_gamma(v))) as u8)
     }
 }
+
+impl From<[u8; 3]> for Color3 {
+    fn from([r, g, b]: [u8; 3]) -> Self {
+        let [r, g, b] = [r, g, b].map(|v| f64::from(v) * BYTE_TO_FLOAT);
+        Self::new(r, g, b)
+    }
+}
+
+impl From<(u8, u8, u8)> for Color3 {
+    fn from((r, g, b): (u8, u8, u8)) -> Self { Self::from([r, g, b]) }
+}
+
+// ---------------------------------------------------------------------------
+// Display / formatting
+// ---------------------------------------------------------------------------
 
 impl fmt::Display for Color3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -94,51 +126,48 @@ impl fmt::LowerHex for Color3 {
     }
 }
 
-impl From<[u8; 3]> for Color3 {
-    fn from([r, g, b]: [u8; 3]) -> Self {
-        let [r, g, b] = [r, g, b].map(|v| Real::from(v) * BYTE_TO_FLOAT);
-        Self::new(r, g, b)
-    }
-}
+// ---------------------------------------------------------------------------
+// FromStr — CSS hex colours (#RRGGBB)
+// ---------------------------------------------------------------------------
 
-impl From<(u8, u8, u8)> for Color3 {
-    fn from((r, g, b): (u8, u8, u8)) -> Self { Self::from([r, g, b]) }
-}
-
-impl FromStr for Color3 {
+impl core::str::FromStr for Color3 {
     type Err = String;
 
-    /// Parses a CSS-style hex colour string e.g. `#FF8000` or `#ff8000`.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let hex = s
             .strip_prefix('#')
             .filter(|h| h.len() == 6 && h.is_ascii())
             .ok_or_else(|| format!("expected '#RRGGBB', got: {s}"))?;
 
-        let parse_channel = |slice, name| {
+        let chan = |slice: &str, name: &str| {
             u8::from_str_radix(slice, 16).map_err(|e| {
-                format!("invalid {name} component '{slice}' (expected 00-FF): {e}")
+                format!("invalid {name} component '{slice}' (expected 00–FF): {e}")
             })
         };
 
-        let (r, g, b) = (
-            parse_channel(&hex[..2], "red")?,
-            parse_channel(&hex[2..4], "green")?,
-            parse_channel(&hex[4..6], "blue")?,
-        );
-
-        Ok(Self::from([r, g, b]))
+        Ok(Self::from([
+            chan(&hex[..2], "red")?,
+            chan(&hex[2..4], "green")?,
+            chan(&hex[4..], "blue")?,
+        ]))
     }
 }
+
+// ---------------------------------------------------------------------------
+// Arithmetic operators
+// ---------------------------------------------------------------------------
 
 impl const Add for Color3 {
     type Output = Self;
 
+    #[inline]
     fn add(self, rhs: Self) -> Self {
         Self::new(self.r + rhs.r, self.g + rhs.g, self.b + rhs.b)
     }
 }
+
 impl const AddAssign for Color3 {
+    #[inline]
     fn add_assign(&mut self, rhs: Self) {
         self.r += rhs.r;
         self.g += rhs.g;
@@ -146,11 +175,11 @@ impl const AddAssign for Color3 {
     }
 }
 
-/// Allows mapping a surface normal (Vec3 in [-1,1]) to a color.
-/// See "Ray Tracing in One Weekend", §6.1.
+/// Map a surface normal (Vec3 in [−1, 1]) to a colour.
 impl const Add<Vec3> for Color3 {
     type Output = Self;
 
+    #[inline]
     fn add(self, rhs: Vec3) -> Self {
         Self::new(self.r + rhs.x, self.g + rhs.y, self.b + rhs.z)
     }
@@ -159,28 +188,34 @@ impl const Add<Vec3> for Color3 {
 impl const Sub for Color3 {
     type Output = Self;
 
+    #[inline]
     fn sub(self, rhs: Self) -> Self {
         Self::new(self.r - rhs.r, self.g - rhs.g, self.b - rhs.b)
     }
 }
 
+/// Component-wise multiply (albedo tinting).
 impl const Mul for Color3 {
     type Output = Self;
 
+    #[inline]
     fn mul(self, rhs: Self) -> Self {
         Self::new(self.r * rhs.r, self.g * rhs.g, self.b * rhs.b)
     }
 }
 
-impl const Mul<Real> for Color3 {
+impl const Mul<f64> for Color3 {
     type Output = Self;
 
-    fn mul(self, rhs: Real) -> Self { rhs * self }
+    #[inline]
+    fn mul(self, rhs: f64) -> Self { rhs * self }
 }
 
-impl const Mul<Color3> for Real {
+/// Scalar on the left: `0.5 * color`.
+impl const Mul<Color3> for f64 {
     type Output = Color3;
 
+    #[inline]
     fn mul(self, rhs: Color3) -> Color3 {
         Color3::new(self * rhs.r, self * rhs.g, self * rhs.b)
     }
@@ -189,25 +224,16 @@ impl const Mul<Color3> for Real {
 impl const Div for Color3 {
     type Output = Self;
 
+    #[inline]
     fn div(self, rhs: Self) -> Self {
         Self::new(self.r / rhs.r, self.g / rhs.g, self.b / rhs.b)
     }
 }
 
 impl Sum for Color3 {
-    fn sum<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = Self>,
-    {
-        iter.fold(Self::BLACK, Self::add)
-    }
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self { iter.fold(Self::BLACK, Self::add) }
 }
 
 impl Product for Color3 {
-    fn product<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = Self>,
-    {
-        iter.fold(Self::WHITE, Self::mul)
-    }
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self { iter.fold(Self::WHITE, Self::mul) }
 }

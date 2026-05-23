@@ -1,56 +1,71 @@
 use std::sync::Arc;
 
-use rtc_shared::Real;
-
 use crate::prelude::{HitRecord, Hittable, Interval, Material, Point3, Ray};
 
-#[derive(Clone)]
+/// A sphere — the only primitive in Book 1.
 pub struct Sphere {
     pub center: Point3,
-    pub radius: Real,
+    /// Always ≥ 0 — negative radii are clamped on construction.
+    pub radius: f64,
     pub material: Arc<dyn Material>,
 }
 
 impl Sphere {
+    #[inline]
     #[must_use]
-    pub const fn new(center: Point3, radius: Real, material: Arc<dyn Material>) -> Self {
+    pub fn new(center: Point3, radius: f64, material: Arc<dyn Material>) -> Self {
+        // Negative radius produces an inverted sphere (useful for hollow glass
+        // bubbles in Book 1 §10.5), so we clamp to 0 as the book does.
         Self { center, radius: radius.max(0.0), material }
     }
 }
-impl Hittable for Sphere {
-    fn hit(&self, r: &Ray, t: Interval) -> Option<HitRecord> {
-        let origin_center = self.center - r.origin;
 
-        let a = r.direction.length_squared();
-        let h = r.direction.dot(origin_center);
-        let c = origin_center.length_squared() - self.radius * self.radius;
+impl Hittable for Sphere {
+    fn hit(&self, ray: &Ray, t: Interval) -> Option<HitRecord> {
+        // Vector from ray origin to sphere centre: **oc** = C − O
+        let oc = self.center - ray.origin;
+
+        // Quadratic coefficients (simplified half-b form from §6.2):
+        //   a  = |d|²
+        //   h  = d · oc       (h = −b/2 in the full form)
+        //   c  = |oc|² − r²
+        // discriminant = h² − a·c
+        let a = ray.direction.length_squared();
+        let h = ray.direction.dot(oc);
+        let c = oc.length_squared() - self.radius * self.radius;
 
         let discriminant = h * h - a * c;
-
         if discriminant < 0.0 {
             return None;
         }
 
         let sqrtd = discriminant.sqrt();
 
-        // Find the nearest root that lies in the acceptable range
-        let t = {
+        // Try the nearer root first, then the farther one.
+        let t_hit = {
             let r1 = (h - sqrtd) / a;
-            t.surrounds(r1).then_some(r1).or_else(|| {
-                let r2 = (h + sqrtd) / a;
-                t.surrounds(r2).then_some(r2)
-            })?
+            let r2 = (h + sqrtd) / a;
+            if t.surrounds(r1) {
+                r1
+            } else if t.surrounds(r2) {
+                r2
+            } else {
+                return None;
+            }
         };
 
-        let p = r.at(t);
+        let p = ray.at(t_hit);
         let outward_normal = (p - self.center) / self.radius;
 
-        let mut record = HitRecord::new();
-        record.t = t;
-        record.p = p;
-        record.set_face_normal(r, outward_normal);
-        record.material = Arc::clone(&self.material);
+        let mut rec = HitRecord {
+            p,
+            t: t_hit,
+            normal: outward_normal, // overwritten below
+            is_front_face: false,   // overwritten below
+            material: Arc::clone(&self.material),
+        };
+        rec.set_face_normal(ray, outward_normal);
 
-        Some(record)
+        Some(rec)
     }
 }
