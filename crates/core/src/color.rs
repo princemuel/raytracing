@@ -3,7 +3,7 @@ use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Div, Mul, Sub};
 
 use rand::prelude::*;
-use rtc_shared::{FuzzyEq as _, random, random_range};
+use shared::{FuzzyEq as _, random, random_range};
 
 use crate::prelude::{Interval, Vec3};
 

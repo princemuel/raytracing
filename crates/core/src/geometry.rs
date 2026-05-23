@@ -1,7 +1,7 @@
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use rand::prelude::*;
-use rtc_shared::{random, random_range};
+use shared::{random, random_range};
 
 /// This accepts anything `Into<f64>` so you can write
 /// `vec3(0, 1, -2)` instead of `vec3(0.0, 1.0, -2.0)`.

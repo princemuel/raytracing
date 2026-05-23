@@ -1,12 +1,12 @@
 [package]
-name              = "rtc_core"
+name              = "engine"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-rand.workspace       = true
-rayon.workspace       = true
-rtc_shared.workspace = true
+rand.workspace   = true
+rayon.workspace  = true
+shared.workspace = true
 
 [lints]
 workspace = true

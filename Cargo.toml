@@ -12,10 +12,10 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [workspace.dependencies]
-rand       = "0.10"
-rayon      = "1"
-rtc_core   = { path = "crates/core" }
-rtc_shared = { path = "crates/shared" }
+engine = { path = "crates/core" }
+rand   = "0.10"
+rayon  = "1"
+shared = { path = "crates/shared" }
 
 [workspace.lints.clippy]
 all      = { level = "warn", priority = -1 }

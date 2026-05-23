@@ -1,5 +1,5 @@
 use rand::prelude::Rng;
-use rtc_shared::random;
+use shared::random;
 
 use crate::prelude::{Color3, HitRecord, Ray, Vec3};
 

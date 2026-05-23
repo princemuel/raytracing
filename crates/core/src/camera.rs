@@ -2,7 +2,7 @@ use std::io::{self, BufWriter, Write as _};
 
 use rand::prelude::*;
 use rayon::prelude::*;
-use rtc_shared::random;
+use shared::random;
 
 use crate::prelude::*;
 
@@ -92,7 +92,7 @@ impl Camera {
 
         // Parallelise over rows. Each row creates its own RNG so there are no
         // shared mutable state or lock contention issues.
-        let pixels: Vec<Color3> = (0..state.image_height)
+        let pixels: Vec<_> = (0..state.image_height)
             .into_par_iter()
             .flat_map(|row| {
                 let mut rng = rand::rng();

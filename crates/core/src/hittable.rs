@@ -49,7 +49,7 @@ pub struct Hittables(Vec<Arc<dyn Hittable>>);
 impl Hittables {
     #[inline]
     #[must_use]
-    pub fn new() -> Self { Self::default() }
+    pub const fn new() -> Self { Self(Vec::new()) }
 
     #[inline]
     pub fn add(&mut self, object: Arc<dyn Hittable>) { self.0.push(object); }
@@ -59,11 +59,11 @@ impl Hittables {
 
     #[inline]
     #[must_use]
-    pub fn len(&self) -> usize { self.0.len() }
+    pub const fn len(&self) -> usize { self.0.len() }
 
     #[inline]
     #[must_use]
-    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+    pub const fn is_empty(&self) -> bool { self.0.is_empty() }
 
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &dyn Hittable> { self.0.iter().map(Arc::as_ref) }

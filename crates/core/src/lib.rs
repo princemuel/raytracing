@@ -5,7 +5,7 @@
 //! ## Quick Start
 //!
 //! ```rust
-//! use rtc_core::prelude::*;
+//! use engine::prelude::*;
 //! ```
 #![feature(const_trait_impl)]
 #![feature(const_ops)]

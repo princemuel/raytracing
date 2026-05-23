@@ -80,7 +80,7 @@ impl From<RangeInclusive<f64>> for Interval {
 
 #[cfg(test)]
 mod tests {
-    use rtc_shared::assert_fuzzy_eq;
+    use shared::assert_fuzzy_eq;
 
     use super::*;
 

@@ -17,6 +17,10 @@ checksum = "c4512299f36f043ab09a583e57bceb5a5aab7a73db1805848e8fef3c9e8c78b3"
 [[package]]
 name = "book1"
 version = "0.1.0"
+dependencies = [
+ "engine",
+ "shared",
+]
 
 [[package]]
 name = "cfg-if"
@@ -74,6 +78,15 @@ name = "either"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "91622ff5e7162018101f2fea40d6ebf4a78bbe5a49736a2020649edf9693679e"
+
+[[package]]
+name = "engine"
+version = "0.1.0"
+dependencies = [
+ "rand",
+ "rayon",
+ "shared",
+]
 
 [[package]]
 name = "equivalent"
@@ -242,22 +255,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rtc_core"
-version = "0.1.0"
-dependencies = [
- "rand",
- "rayon",
- "rtc_shared",
-]
-
-[[package]]
-name = "rtc_shared"
-version = "0.1.0"
-dependencies = [
- "rand",
-]
-
-[[package]]
 name = "semver"
 version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -303,6 +300,13 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "shared"
+version = "0.1.0"
+dependencies = [
+ "rand",
 ]
 
 [[package]]
