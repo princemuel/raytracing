@@ -33,6 +33,13 @@ impl Interval {
     #[must_use]
     pub const fn size(self) -> f64 { self.max - self.min }
 
+    #[inline]
+    #[must_use]
+    pub const fn expand(self, delta: f64) -> Self {
+        let padding = delta * 0.5;
+        Self { min: self.min - padding, max: self.max + padding }
+    }
+
     /// Clamps `x` into `[min, max]`.
     #[inline]
     #[must_use]

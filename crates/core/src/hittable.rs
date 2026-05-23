@@ -76,8 +76,8 @@ impl Hittable for Hittables {
         self.0
             .iter()
             .fold((t.max, None), |(closest, best), obj| {
-                if let Some(rec) = obj.hit(ray, interval(t.min, closest)) {
-                    (rec.t, Some(rec))
+                if let Some(record) = obj.hit(ray, interval(t.min, closest)) {
+                    (record.t, Some(record))
                 } else {
                     (closest, best)
                 }

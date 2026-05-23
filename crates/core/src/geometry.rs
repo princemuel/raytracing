@@ -3,6 +3,8 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAss
 use rand::prelude::*;
 use shared::{random, random_range};
 
+use crate::prelude::Axis;
+
 /// This accepts anything `Into<f64>` so you can write
 /// `vec3(0, 1, -2)` instead of `vec3(0.0, 1.0, -2.0)`.
 #[inline]
@@ -41,6 +43,15 @@ impl Vec3 {
     #[inline]
     #[must_use]
     pub const fn splat(v: f64) -> Self { Self { x: v, y: v, z: v } }
+
+    #[must_use]
+    pub const fn get(self, axis: Axis) -> f64 {
+        match axis {
+            Axis::X => self.x,
+            Axis::Y => self.y,
+            Axis::Z => self.z,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------

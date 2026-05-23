@@ -11,6 +11,8 @@
 #![feature(const_ops)]
 #![feature(impl_trait_in_assoc_type)]
 
+pub mod aabb;
+pub mod axis;
 pub mod camera;
 pub mod color;
 pub mod geometry;

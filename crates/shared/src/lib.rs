@@ -3,17 +3,17 @@ use core::f64;
 use rand::prelude::*;
 
 /// Adaptive fuzzy-equality epsilon; also the default for [`approx_eq`].
-pub const TOLERANCE: f64 = 1e-6;
+pub const TOLERANCE: f64 = 1e-4;
 
-/// Returns a random real in [0,1).
+/// Returns a random real in *`[0,1]`*.
 #[inline]
 #[must_use]
 pub fn random(rng: &mut dyn Rng) -> f64 { rng.random() }
 
-/// Returns a random real in [min,max).
+/// Returns a random real in *`[min,max]`*.
 ///
-/// The upper bound is exclusive: `rng.random::<f64>()` is in `[0,1)`,
-/// so the result is in `[min, max)`.
+/// The upper bound is exclusive: `rng.random::<f64>()` is in *`[0,1]`*,
+/// so the result is in *`[min,max]`*.
 #[inline]
 #[must_use]
 pub fn random_range(rng: &mut dyn Rng, min: f64, max: f64) -> f64 {

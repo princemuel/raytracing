@@ -5,7 +5,7 @@ use core::ops::{Add, AddAssign, Div, Mul, Sub};
 use rand::prelude::*;
 use shared::{FuzzyEq as _, random, random_range};
 
-use crate::prelude::{Interval, Vec3};
+use crate::prelude::{Axis, Interval, Vec3};
 
 #[inline]
 #[must_use]
@@ -37,6 +37,15 @@ impl Color3 {
     #[inline]
     #[must_use]
     pub const fn splat(v: f64) -> Self { Self { r: v, g: v, b: v } }
+
+    #[must_use]
+    pub const fn get(self, axis: Axis) -> f64 {
+        match axis {
+            Axis::X => self.r,
+            Axis::Y => self.g,
+            Axis::Z => self.b,
+        }
+    }
 }
 
 impl Color3 {
