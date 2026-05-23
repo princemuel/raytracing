@@ -139,7 +139,7 @@ impl Camera {
             s.center + (p.x * s.defocus_disk_u) + (p.y * s.defocus_disk_v)
         };
 
-        Ray::new(origin, pixel_sample - origin)
+        Ray::new(origin, pixel_sample - origin, Some(random(rng)))
     }
 
     /// Recursively traces `ray` and returns the accumulated radiance.
@@ -176,11 +176,7 @@ impl Camera {
         // At least 1 pixel tall.
         let ih = (iw / self.aspect_ratio).max(1.0).round();
 
-        #[expect(
-            clippy::cast_possible_truncation,
-            clippy::as_conversions,
-            clippy::cast_sign_loss
-        )]
+        #[expect(clippy::cast_possible_truncation, clippy::as_conversions, clippy::cast_sign_loss)]
         let image_height = ih as u32;
 
         let pixel_samples_scale = 1.0 / f64::from(self.samples_per_pixel);
