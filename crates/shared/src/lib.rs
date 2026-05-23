@@ -1,86 +1,69 @@
-#![feature(const_trait_impl)]
-#![feature(const_cmp)]
-#![feature(const_ops)]
-#![feature(sized_hierarchy)]
-
 use core::f64;
-use core::marker::PointeeSized;
 
 use rand::prelude::*;
 
-pub type Real = f64;
-pub const EPSILON: Real = <Real as FuzzyEq>::EPSILON;
+/// Adaptive fuzzy-equality epsilon; also the default for [`approx_eq`].
+pub const EPSILON: f64 = 1e-4;
+pub const PI: f64 = f64::consts::PI;
 
-pub const PI: Real = f64::consts::PI;
+// ---------------------------------------------------------------------------
+// RNG helpers
+// ---------------------------------------------------------------------------
 
 /// Returns a random real in [0,1).
+#[inline]
 #[must_use]
-pub fn random(rng: &mut impl Rng) -> Real { rng.random() }
+pub fn random(rng: &mut impl Rng) -> f64 { rng.random() }
 
-/// Returns a random real in [min,max].
+/// Returns a random real in [min,max).
+///
+/// The upper bound is exclusive: `rng.random::<f64>()` is in `[0,1)`,
+/// so the result is in `[min, max)`.
+#[inline]
 #[must_use]
-pub fn random_w_range(rng: &mut impl Rng, min: Real, max: Real) -> Real {
-    debug_assert!(min <= max);
-    min + (max - min) * rng.random::<Real>()
+pub fn random_range(rng: &mut impl Rng, min: f64, max: f64) -> f64 {
+    debug_assert!(min <= max, "random_range: min ({min}) must be <= max ({max})");
+    min + (max - min) * rng.random::<f64>()
 }
 
-pub const trait FuzzyEq<Rhs: PointeeSized = Self>: PointeeSized {
+// ---------------------------------------------------------------------------
+// FuzzyEq trait
+// ---------------------------------------------------------------------------
+
+pub trait FuzzyEq<Rhs = Self>
+where
+    Self: Sized,
+{
     type Float;
-    const EPSILON: Self::Float;
+    const TOLERANCE: Self::Float;
 
     fn fuzzy_eq(&self, other: &Rhs) -> bool;
+
+    #[inline]
     fn fuzzy_ne(&self, other: &Rhs) -> bool { !self.fuzzy_eq(other) }
 }
 
-impl const FuzzyEq for f32 {
+impl FuzzyEq for f32 {
     type Float = f32;
 
-    const EPSILON: f32 = 1e-5_f32;
+    const TOLERANCE: f32 = 1e-4;
 
     fn fuzzy_eq(&self, other: &Self) -> bool {
-        if self == other {
-            return true;
-        }
-
-        if self.is_nan() || other.is_nan() {
-            return false;
-        }
-
-        if self.is_infinite() || other.is_infinite() {
-            return false;
-        }
-
-        let scale = self.abs().max(other.abs());
-        let delta = (self - other).abs();
-
-        if scale < 1.0 { delta <= Self::EPSILON } else { delta <= scale * Self::EPSILON }
+        approx_eq_eps(f64::from(*self), f64::from(*other), f64::from(Self::TOLERANCE))
     }
 }
 
-impl const FuzzyEq for f64 {
+impl FuzzyEq for f64 {
     type Float = f64;
 
-    const EPSILON: f64 = 1e-4;
+    const TOLERANCE: f64 = 1e-4;
 
-    fn fuzzy_eq(&self, other: &Self) -> bool {
-        if self == other {
-            return true;
-        }
-
-        if self.is_nan() || other.is_nan() {
-            return false;
-        }
-
-        if self.is_infinite() || other.is_infinite() {
-            return false;
-        }
-
-        let scale = self.abs().max(other.abs());
-        let delta = (self - other).abs();
-
-        if scale < 1.0 { delta <= Self::EPSILON } else { delta <= scale * Self::EPSILON }
-    }
+    fn fuzzy_eq(&self, other: &Self) -> bool { approx_eq_eps(*self, *other, Self::TOLERANCE) }
 }
+
+// ---------------------------------------------------------------------------
+// Convenience macros
+// ---------------------------------------------------------------------------
 
 /// Approximate equality. mirrors `assert_eq!` ergonomics.
 #[macro_export]
@@ -124,17 +107,23 @@ macro_rules! assert_fuzzy_ne {
     };
 }
 
+// ---------------------------------------------------------------------------
+// Stand-alone approximate-equality functions
+// ---------------------------------------------------------------------------
+
 /// Approximate equality by absolute tolerance.
 ///
 /// Returns `true` if `|x - y| <= tolerance`.
 ///
 /// Best for values near zero. For larger values, prefer [`approx_eq_rel`].
-/// NaN is never equal to anything.
+///
+/// - `±∞ == ±∞` returns `true` (via the `x == y` fast path — IEEE semantics).
+/// - `NaN` is never equal to anything.
 #[must_use]
-pub const fn approx_eq_abs(x: Real, y: Real, tolerance: Real) -> bool {
-    debug_assert!(tolerance >= 0.0);
+pub const fn approx_eq_abs(x: f64, y: f64, tolerance: f64) -> bool {
+    debug_assert!(tolerance >= 0.0_f64);
 
-    // handle ±0, ±∞, exact matches
+    // Handles ±0 == ±0, ±∞ == ±∞, and exact matches.
     #[expect(clippy::float_cmp)]
     if x == y {
         return true;
@@ -152,18 +141,28 @@ pub const fn approx_eq_abs(x: Real, y: Real, tolerance: Real) -> bool {
 /// Returns `true` if `|x - y| <= max(|x|, |y|) * tolerance`.
 ///
 /// The `tolerance` should be positive; `sqrt(EPSILON)` is a common choice.
-/// Not meaningful near zero — use [`approx_eq_abs`] there instead.
-/// NaN is never equal to anything.
+/// Not meaningful near zero. use [`approx_eq_abs`] there instead.
+///
+/// - `±∞ == ±∞` returns `true` (via the `x == y` fast path).
+/// - Mixed `∞`/finite comparisons return `false` (the infinity guard below).
+///   Without this guard, `scale` would be `∞`, making `∞ * tolerance = ∞`, and
+///   any finite difference would be `<= ∞` — incorrectly returning `true`.
+/// - `NaN` is never equal to anything.
 #[must_use]
-pub const fn approx_eq_rel(x: Real, y: Real, tolerance: Real) -> bool {
-    debug_assert!(tolerance > 0.0);
+pub const fn approx_eq_rel(x: f64, y: f64, tolerance: f64) -> bool {
+    debug_assert!(tolerance > 0.0_f64);
 
-    // handle ±0, ±∞, exact matches
+    // Handles ±0 == ±0, ±∞ == ±∞, and exact matches.
     #[expect(clippy::float_cmp)]
     if x == y {
         return true;
     }
     if x.is_nan() || y.is_nan() {
+        return false;
+    }
+    // Without this, approx_eq_rel(INFINITY, any_finite, t) returns true
+    // because scale = ∞ and (∞ - finite).abs() = ∞ <= ∞ * t = ∞.
+    if x.is_infinite() || y.is_infinite() {
         return false;
     }
 
@@ -171,25 +170,27 @@ pub const fn approx_eq_rel(x: Real, y: Real, tolerance: Real) -> bool {
     (x - y).abs() <= scale * tolerance
 }
 
-/// Approximate equality using an adaptive epsilon.
+/// Approximate equality using an adaptive epsilon equal to [`EPSILON`].
 ///
-/// Uses absolute epsilon for values near zero (`|x|, |y| < 1`),
-/// and relative epsilon for larger values. This handles the full range
-/// of `Real` correctly without manual tolerance selection.
-///
-/// NaN is never equal to anything.
+/// Convenience wrapper for [`approx_eq_eps`]`(x, y, EPSILON)`.
+/// See that function for full semantics.
 #[must_use]
-pub const fn approx_eq(x: Real, y: Real) -> bool { approx_eq_eps(x, y, EPSILON) }
+pub const fn approx_eq(x: f64, y: f64) -> bool { approx_eq_eps(x, y, EPSILON) }
 
 /// Approximate equality using an adaptive epsilon.
 ///
-/// Uses absolute epsilon for values near zero (`|x|, |y| < 1`),
-/// and relative epsilon for larger values. This handles the full range
-/// of `Real` correctly without manual tolerance selection.
+/// Uses [`approx_eq_abs`] for values near zero (`max(|x|, |y|) < 1`) and
+/// [`approx_eq_rel`] for larger values. This handles the full range of `f64`
+/// correctly without manual tolerance selection.
 ///
-/// NaN is never equal to anything.
+/// - `±∞ == ±∞` returns `true` (via the `x == y` fast path).
+/// - Mixed `∞`/finite inputs return `false` (the infinity guard below exists
+///   only as a safety net; in practice, `approx_eq_rel` already rejects them,
+///   but the guard makes the intent explicit and avoids relying on delegation).
+/// - `NaN` is never equal to anything.
 #[must_use]
-pub const fn approx_eq_eps(x: Real, y: Real, epsilon: Real) -> bool {
+pub const fn approx_eq_eps(x: f64, y: f64, epsilon: f64) -> bool {
+    // Handles ±0 == ±0, ±∞ == ±∞, and exact matches.
     #[expect(clippy::float_cmp)]
     if x == y {
         return true;
@@ -199,6 +200,10 @@ pub const fn approx_eq_eps(x: Real, y: Real, epsilon: Real) -> bool {
         return false;
     }
 
+    // Fires only for mixed ∞/finite inputs. Equal infinities are already
+    // handled by the x == y fast path above, so this is NOT dead code.
+    // It catches e.g. (INFINITY, 1.0) before the scale computation below
+    // would produce a meaningless result.
     if x.is_infinite() || y.is_infinite() {
         return false;
     }
@@ -212,18 +217,17 @@ pub const fn approx_eq_eps(x: Real, y: Real, epsilon: Real) -> bool {
 mod tests {
     use super::*;
 
-    // approx_eq_abs
+    // --- approx_eq_abs ---
 
     #[test]
     fn abs_zeros() {
-        assert_fuzzy_eq!(0.0, 0.0);
-        assert_fuzzy_eq!(-0.0, -0.0);
-        assert_fuzzy_eq!(0.0, -0.0);
+        assert_fuzzy_eq!(0.0_f64, 0.0_f64);
+        assert_fuzzy_eq!(-0.0_f64, -0.0_f64);
+        assert_fuzzy_eq!(0.0_f64, -0.0_f64);
     }
 
     #[test]
     fn abs_within_tolerance() {
-        // testing the boundary of a specific tolerance, not fuzzy equality
         assert!(approx_eq_abs(1.0 + EPSILON, 1.0, EPSILON));
     }
 
@@ -234,82 +238,107 @@ mod tests {
 
     #[test]
     fn abs_opposite_signs_near_zero() {
-        assert_fuzzy_ne!(1e-8, -1e-8);
+        // delta = 2e-8, within any sane epsilon
+        assert_fuzzy_eq!(1e-8, -1e-8);
+        // delta = 2 * EPSILON,
+        assert_fuzzy_ne!(EPSILON, -EPSILON);
     }
 
     #[test]
     fn abs_min_positive_near_zero() {
         // MIN_POSITIVE is ~2.2e-308, well within any reasonable epsilon
-        assert_fuzzy_eq!(Real::MIN_POSITIVE, 0.0);
+        assert_fuzzy_eq!(f64::MIN_POSITIVE, 0.0_f64);
     }
 
-    // approx_eq_rel
+    // --- approx_eq_rel ---
 
     #[test]
     fn rel_exact_equality() {
-        assert_fuzzy_eq!(1.0, 1.0);
-        assert_fuzzy_eq!(Real::INFINITY, Real::INFINITY);
+        assert!(approx_eq_rel(1.0, 1.0, EPSILON));
+        assert!(approx_eq_rel(f64::INFINITY, f64::INFINITY, EPSILON));
     }
 
     #[test]
     fn rel_nan_not_equal_to_nan() {
-        assert_fuzzy_ne!(Real::NAN, Real::NAN);
+        assert!(!approx_eq_rel(f64::NAN, f64::NAN, EPSILON));
     }
 
     #[test]
     fn rel_not_equal() {
-        assert_fuzzy_ne!(1.0, 0.0);
+        assert!(!approx_eq_rel(1.0, 0.0_f64, EPSILON));
     }
 
     #[test]
     fn rel_nan_not_equal_to_zero() {
-        assert_fuzzy_ne!(Real::NAN, 0.0);
+        assert!(!approx_eq_rel(f64::NAN, 0.0_f64, EPSILON));
     }
 
     #[test]
     fn rel_large_values() {
-        let a = 1_000_000.0;
+        let a = 1_000_000.0_f64;
         assert!(approx_eq_rel(a, a + a * EPSILON * 0.5, EPSILON));
         assert!(!approx_eq_rel(a, a + a * EPSILON * 2.0, EPSILON));
     }
-    // approx_eq (adaptive)
+
+    #[test]
+    fn rel_infinity_not_equal_to_finite() {
+        assert!(!approx_eq_rel(f64::INFINITY, 1.0, EPSILON));
+        assert!(!approx_eq_rel(1.0, f64::INFINITY, EPSILON));
+        assert!(!approx_eq_rel(f64::NEG_INFINITY, 1.0, EPSILON));
+        assert!(!approx_eq_rel(1.0, f64::NEG_INFINITY, EPSILON));
+        assert!(!approx_eq_rel(f64::INFINITY, 0.0_f64, EPSILON));
+    }
+
+    #[test]
+    fn rel_opposite_infinities_not_equal() {
+        assert!(!approx_eq_rel(f64::INFINITY, f64::NEG_INFINITY, EPSILON));
+    }
+
+    // --- approx_eq / approx_eq_eps (adaptive) ---
 
     #[test]
     fn adaptive_exact_equality() {
         assert_fuzzy_eq!(1.0, 1.0);
         assert_fuzzy_eq!(-42.5, -42.5);
-        assert_fuzzy_eq!(0.0, -0.0);
+        assert_fuzzy_eq!(0.0_f64, -0.0_f64);
     }
 
     #[test]
     fn adaptive_infinity_equal_to_itself() {
-        assert_fuzzy_eq!(Real::INFINITY, Real::INFINITY);
-        assert_fuzzy_eq!(Real::NEG_INFINITY, Real::NEG_INFINITY);
+        assert_fuzzy_eq!(f64::INFINITY, f64::INFINITY);
+        assert_fuzzy_eq!(f64::NEG_INFINITY, f64::NEG_INFINITY);
     }
 
     #[test]
     fn adaptive_opposite_infinities_not_equal() {
-        assert_fuzzy_ne!(Real::INFINITY, Real::NEG_INFINITY);
-        assert_fuzzy_ne!(Real::INFINITY, 1.0);
+        // ∞ vs -∞: x == y is false, NaN check passes, is_infinite() fires → false.
+        assert_fuzzy_ne!(f64::INFINITY, f64::NEG_INFINITY);
+        assert_fuzzy_ne!(f64::INFINITY, 1.0);
     }
 
     #[test]
     fn adaptive_nan_never_equal() {
-        let nan = Real::NAN;
-        assert_fuzzy_ne!(nan, nan);
-        assert_fuzzy_ne!(nan, 0.0);
-        assert_fuzzy_ne!(0.0, nan);
+        assert_fuzzy_ne!(f64::NAN, f64::NAN);
+        assert_fuzzy_ne!(f64::NAN, 0.0_f64);
+        assert_fuzzy_ne!(0.0_f64, f64::NAN);
     }
 
     #[test]
     fn adaptive_near_zero_uses_absolute() {
-        assert_fuzzy_eq!(0.0, EPSILON * 0.5);
-        assert_fuzzy_ne!(0.0, EPSILON * 2.0);
+        // 0.0_f64 vs EPSILON*0.5 = 5e-5: scale = 5e-5 < 1.0, delta = 5e-5 <= EPSILON
+        // (1e-4) → true.
+        // Bug: why is this failing and not the equivalent assert! below
+        assert_fuzzy_eq!(0.0_f64, EPSILON * 0.5);
+        assert!(approx_eq_eps(0.0_f64, EPSILON * 0.5, EPSILON));
+        // 0.0_f64 vs EPSILON*2.0 = 2e-4: scale < 1.0, delta = 2e-4 > EPSILON (1e-4)
+        // → false.
+        assert_fuzzy_ne!(0.0_f64, EPSILON * 2.0);
+        assert!(!approx_eq_eps(0.0_f64, EPSILON * 2.0, EPSILON));
     }
 
     #[test]
     fn adaptive_large_values_use_relative() {
-        let a = 1_000_000.0;
+        let a = 1_000_000.0_f64;
         assert!(approx_eq_rel(a, a + a * EPSILON * 0.5, EPSILON));
         assert!(!approx_eq_rel(a, a + a * EPSILON * 2.0, EPSILON));
     }
@@ -321,8 +350,11 @@ mod tests {
 
     #[test]
     fn adaptive_symmetric() {
-        let pairs =
-            [(0.0, EPSILON * 0.5), (1.0, 1.0 + EPSILON), (1000.0, 1000.0 + EPSILON * 500.0)];
+        let pairs = [
+            (0.0_f64, EPSILON * 0.5),
+            (1.0, 1.0 + EPSILON),
+            (1000.0_f64, 1000.0_f64 + EPSILON * 500.0_f64),
+        ];
         for (a, b) in pairs {
             assert_eq!(fuzzy_eq!(a, b), fuzzy_eq!(b, a));
         }
@@ -331,5 +363,16 @@ mod tests {
     #[test]
     fn adaptive_opposite_large_values_not_equal() {
         assert_fuzzy_ne!(1e6, -1e6);
+    }
+
+    // --- random_range ---
+
+    #[test]
+    fn random_range_stays_below_max() {
+        let mut rng = rand::rng();
+        for _ in 0..10_000 {
+            let v = random_range(&mut rng, 0.0_f64, 1.0);
+            assert!((0.0_f64..1.0).contains(&v), "out of [0,1): {v}");
+        }
     }
 }
