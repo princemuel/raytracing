@@ -55,6 +55,9 @@ pub trait Hittable: Send + Sync {
 pub struct Hittables(Vec<Arc<dyn Hittable>>);
 
 impl Hittables {
+    #[must_use]
+    pub const fn new() -> Self { Self(vec![]) }
+
     pub fn add(&mut self, object: Arc<dyn Hittable>) { self.0.push(object); }
 
     pub fn clear(&mut self) { self.0.clear(); }

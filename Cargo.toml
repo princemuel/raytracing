@@ -13,6 +13,7 @@ publish = false
 
 [workspace.dependencies]
 rand       = "0.10"
+rayon      = "1"
 rtc_core   = { path = "crates/core" }
 rtc_shared = { path = "crates/shared" }
 

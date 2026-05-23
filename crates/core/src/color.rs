@@ -3,7 +3,8 @@ use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Div, Mul, Sub};
 use core::str::FromStr;
 
-use rtc_shared::{FuzzyEq as _, Real};
+use rand::prelude::*;
+use rtc_shared::{FuzzyEq as _, Real, random, random_w_range};
 
 use crate::prelude::{Interval, Vec3};
 
@@ -34,6 +35,22 @@ impl Color3 {
 
     #[must_use]
     pub const fn splat(v: Real) -> Self { Self { r: v, g: v, b: v } }
+}
+
+impl Color3 {
+    #[must_use]
+    pub fn random(mut rng: &mut impl Rng) -> Self {
+        Self::new(random(&mut rng), random(&mut rng), random(&mut rng))
+    }
+
+    #[must_use]
+    pub fn random_w_range(mut rng: &mut impl Rng, min: Real, max: Real) -> Self {
+        Self::new(
+            random_w_range(&mut rng, min, max),
+            random_w_range(&mut rng, min, max),
+            random_w_range(&mut rng, min, max),
+        )
+    }
 }
 
 impl PartialEq for Color3 {

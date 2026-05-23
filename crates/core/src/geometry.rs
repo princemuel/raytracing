@@ -1,5 +1,6 @@
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub};
 
+use rand::prelude::*;
 use rtc_shared::{Real, random, random_w_range};
 
 #[must_use]
@@ -97,7 +98,8 @@ impl Vec3 {
 
     #[must_use]
     pub const fn reflect(self, normal: Self) -> Self {
-        self - (normal * (2.0 * self.dot(normal)))
+        let v = self;
+        v - (normal * (2.0 * v.dot(normal)))
     }
 
     #[must_use]
@@ -120,14 +122,12 @@ impl Vec3 {
     }
 
     #[must_use]
-    pub fn random() -> Self {
-        let mut rng = rand::rng();
+    pub fn random(mut rng: &mut impl Rng) -> Self {
         Self::new(random(&mut rng), random(&mut rng), random(&mut rng))
     }
 
     #[must_use]
-    pub fn random_w_range(min: Real, max: Real) -> Self {
-        let mut rng = rand::rng();
+    pub fn random_w_range(mut rng: &mut impl Rng, min: Real, max: Real) -> Self {
         Self::new(
             random_w_range(&mut rng, min, max),
             random_w_range(&mut rng, min, max),
@@ -138,11 +138,12 @@ impl Vec3 {
     #[must_use]
     pub fn random_unit() -> Self {
         const BLACKHOLE: Real = 1e-160;
+        let mut rng = rand::rng();
         loop {
-            let p = Self::random_w_range(-1.0, 1.0);
+            let p = Self::random_w_range(&mut rng, -1.0, 1.0);
             let len_sq = p.length_squared();
             // ? NOTE: using < 2 instead of <= 1
-            if BLACKHOLE < len_sq && len_sq < 2.0 {
+            if BLACKHOLE < len_sq && len_sq <= 1.0 {
                 return p / len_sq.sqrt();
             }
         }
@@ -152,6 +153,20 @@ impl Vec3 {
     pub fn random_on_hemisphere(normal: Self) -> Self {
         let on_unit_sphere = Self::random_unit();
         if on_unit_sphere.dot(normal) > 0.0 { on_unit_sphere } else { -on_unit_sphere }
+    }
+
+    #[must_use]
+    pub fn random_in_unit_disk(mut rng: &mut impl Rng) -> Self {
+        loop {
+            let p = Self::new(
+                random_w_range(&mut rng, -1.0, 1.0),
+                random_w_range(&mut rng, -1.0, 1.0),
+                0.0,
+            );
+            if p.length_squared() < 1.0 {
+                return p;
+            }
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 use std::io::{self, BufWriter, Write as _};
 
 use rand::prelude::Rng;
+use rayon::prelude::{IntoParallelIterator as _, ParallelIterator as _};
 use rtc_shared::{Real, random};
 
 use crate::prelude::*;
@@ -16,13 +17,17 @@ pub struct Camera {
     /// The maximum number of ray bounces into a scene
     pub max_depth: i32,
     /// The vertical view angle (field of view) in degrees
-    pub vfov: i32,
+    pub vfov: Real,
     /// The point the camera is looking from
     pub lookfrom: Point3,
     /// The point the camera is looking at
     pub lookat: Point3,
     /// The camera-relative "up" direction
     pub vup: Vec3,
+    /// The variation angle of rays through each pixel
+    pub defocus_angle: Real,
+    /// The distance from camera lookfrom point to plane of perfect focus
+    pub focus_dist: Real,
 }
 
 impl Default for Camera {
@@ -32,15 +37,18 @@ impl Default for Camera {
             image_width: 100,
             samples_per_pixel: 10,
             max_depth: 10,
-            vfov: 90,
+            vfov: 90.0,
             lookfrom: Point3::ZERO,
             lookat: Point3::NEG_Z,
             vup: Vec3::Y,
+            defocus_angle: 0.0,
+            focus_dist: 10.0,
         }
     }
 }
 
-struct CameraConfig {
+#[derive(Clone, Copy, Debug)]
+pub struct CameraConfig {
     /// The rendered image height
     image_height: i32,
     /// Color scale factor for a sum of pixel samples
@@ -53,12 +61,10 @@ struct CameraConfig {
     pixel_du: Vec3,
     /// The offset to pixel below
     pixel_dv: Vec3,
-    /// The camera frame basis vector `u`
-    u: Vec3,
-    /// The camera frame basis vector `v`
-    v: Vec3,
-    /// The camera frame basis vector `w`
-    w: Vec3,
+    /// Defocus disk horizontal radius
+    defocus_disk_u: Vec3,
+    /// Defocus disk vertical radius
+    defocus_disk_v: Vec3,
 }
 
 impl Camera {
@@ -66,42 +72,55 @@ impl Camera {
         let cfg = self.initialize();
 
         let stdout = io::stdout();
-        let mut rng = rand::rng();
         let mut out = BufWriter::new(stdout.lock());
 
         writeln!(&mut out, "P3\n{} {}\n255", self.image_width, cfg.image_height)?;
 
-        for j in 0..cfg.image_height {
-            eprint!("\rScanlines remaining: {} ", cfg.image_height - j);
-            io::stderr().flush()?;
+        // Each row is independent — parallelise over scanlines
+        let pixels: Vec<_> = (0..cfg.image_height)
+            .into_par_iter()
+            .flat_map(|j| {
+                let mut rng = rand::rng();
 
-            for i in 0..self.image_width {
-                let mut pixel_color = Color3::BLACK;
+                (0..self.image_width)
+                    .map(move |i| {
+                        let mut pixel_color = Color3::BLACK;
+                        for _sample in 0..self.samples_per_pixel {
+                            let ray = self.get_ray(&cfg, &mut rng, i.into(), j.into());
+                            pixel_color += Self::ray_color(&ray, self.max_depth, world);
+                        }
+                        cfg.pixel_samples_scale * pixel_color
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
 
-                for _ in 0..self.samples_per_pixel {
-                    let ray = self.get_ray(&mut rng, i.into(), j.into());
-                    pixel_color += Self::ray_color(&ray, self.max_depth, world);
-                }
-
-                writeln!(&mut out, "{}", cfg.pixel_samples_scale * pixel_color)?;
-            }
+        for pixel in pixels {
+            writeln!(&mut out, "{pixel}")?;
         }
 
-        eprintln!("\rDone.");
+        eprintln!("\rDone         ");
         Ok(())
     }
 
     /// Returns a ray from the camera center to the pixel at (u, v) with a
     /// random offset within the pixel for anti-aliasing.
     #[must_use]
-    pub fn get_ray(&self, rng: &mut impl Rng, u: Real, v: Real) -> Ray {
-        let cfg = self.initialize();
-        let offset = self.sample_square(rng);
+    pub fn get_ray(&self, cfg: &CameraConfig, mut rng: &mut impl Rng, u: Real, v: Real) -> Ray {
+        let offset = self.sample_square(&mut rng);
 
-        let pixel_sample =
-            cfg.pixel00_loc + ((u + offset.x) * cfg.pixel_du) + ((v + offset.y) * cfg.pixel_dv);
+        let pixel_sample = {
+            cfg.pixel00_loc + ((u + offset.x) * cfg.pixel_du) + ((v + offset.y) * cfg.pixel_dv)
+        };
 
-        Ray::new(cfg.center, pixel_sample - cfg.center)
+        let origin = if self.defocus_angle <= 0.0 {
+            cfg.center
+        } else {
+            self.defocus_disk_sample(&mut rng)
+        };
+        let direction = pixel_sample - origin;
+
+        Ray::new(origin, direction)
     }
 
     /// Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit
@@ -113,26 +132,52 @@ impl Camera {
         vec3(random(rng) - 0.5, random(rng) - 0.5, 0)
     }
 
+    /// Returns a random point in the unit (radius 0.5) disk centered at the
+    /// origin.
+    pub fn sample_disk(&self, mut rng: &mut impl Rng, radius: Real) -> Vec3 {
+        radius * Vec3::random_in_unit_disk(&mut rng)
+    }
+
+    /// Returns the vector to a random point in the camera's defocus disk
+    pub fn defocus_disk_sample(&self, mut rng: &mut impl Rng) -> Vec3 {
+        let cfg = self.initialize();
+        let p = Vec3::random_in_unit_disk(&mut rng);
+        cfg.center + (p.x * cfg.defocus_disk_u) + (p.y * cfg.defocus_disk_v)
+    }
+
     #[expect(clippy::similar_names)]
     fn initialize(&self) -> CameraConfig {
-        let image_width = Real::from(self.image_width);
-        let samples_per_pixel = Real::from(self.samples_per_pixel);
-        let image_height = (image_width / self.aspect_ratio).max(1.0).round();
+        let Self {
+            image_width,
+            focus_dist,
+            samples_per_pixel,
+            defocus_angle,
+            aspect_ratio,
+            lookfrom,
+            lookat,
+            vup,
+            vfov,
+            ..
+        } = *self;
+
+        let image_width = Real::from(image_width);
+        let samples_per_pixel = Real::from(samples_per_pixel);
+        let image_height = (image_width / aspect_ratio).max(1.0).round();
 
         let pixel_samples_scale = 1.0 / samples_per_pixel;
 
-        let center = self.lookfrom;
+        let center = lookfrom;
 
         // Determine viewport dimensions.
-        let focal_len = (self.lookfrom - self.lookat).length();
-        let theta = Real::from(self.vfov).to_radians();
+        // let focal_len = (self.lookfrom - self.lookat).length();
+        let theta = vfov.to_radians();
         let h = (theta / 2.0).tan();
-        let vh = 2.0 * h * focal_len;
+        let vh = 2.0 * h * focus_dist;
         let vw = vh * (image_width / image_height);
 
-        // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
-        let w = (self.lookfrom - self.lookat).unit();
-        let u = self.vup.cross(w).unit();
+        // Calculate the u,v,w unit basis vectors for the camera's coordinate frame.
+        let w = (lookfrom - lookat).unit();
+        let u = vup.cross(w).unit();
         let v = w.cross(u);
 
         // vector across viewport horizontal edge
@@ -145,10 +190,14 @@ impl Camera {
         let pixel_dv = viewport_v / image_height;
 
         // Calculate the location of the upper left pixel
-        // vec3(0, 0, focal_len) == Vec3::Z when focal_len = 1.0
         let viewport_upper_left =
-            center - (focal_len * w) - viewport_u / 2.0 - viewport_v / 2.0;
+            center - (focus_dist * w) - (viewport_u / 2.0) - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_du + pixel_dv);
+
+        // Calculate the camera defocus disk basis vectors
+        let defocus_radius = focus_dist * (defocus_angle / 2.0).to_radians().tan();
+        let defocus_disk_u = u * defocus_radius;
+        let defocus_disk_v = v * defocus_radius;
 
         #[expect(clippy::cast_possible_truncation, clippy::as_conversions)]
         // max(1.0) and round() guarantee this is a positive integer. cast is safe
@@ -161,15 +210,14 @@ impl Camera {
             pixel00_loc,
             pixel_du,
             pixel_dv,
-            u,
-            v,
-            w,
+            defocus_disk_u,
+            defocus_disk_v,
         }
     }
 
     fn ray_color(ray: &Ray, depth: i32, world: &dyn Hittable) -> Color3 {
         // If we've exceeded the ray bounce limit, no more light is gathered
-        if depth < 1 {
+        if depth <= 0 {
             return Color3::BLACK;
         }
 
