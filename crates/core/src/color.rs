@@ -42,9 +42,7 @@ impl Color3 {
 impl Color3 {
     #[inline]
     #[must_use]
-    pub fn random(rng: &mut dyn Rng) -> Self {
-        Self::new(random(rng), random(rng), random(rng))
-    }
+    pub fn random(rng: &mut dyn Rng) -> Self { Self::new(random(rng), random(rng), random(rng)) }
 
     #[inline]
     #[must_use]
@@ -140,9 +138,8 @@ impl core::str::FromStr for Color3 {
             .ok_or_else(|| format!("expected '#RRGGBB', got: {s}"))?;
 
         let chan = |slice: &str, name: &str| {
-            u8::from_str_radix(slice, 16).map_err(|e| {
-                format!("invalid {name} component '{slice}' (expected 00–FF): {e}")
-            })
+            u8::from_str_radix(slice, 16)
+                .map_err(|e| format!("invalid {name} component '{slice}' (expected 00–FF): {e}"))
         };
 
         Ok(Self::from([
@@ -161,9 +158,7 @@ impl const Add for Color3 {
     type Output = Self;
 
     #[inline]
-    fn add(self, rhs: Self) -> Self {
-        Self::new(self.r + rhs.r, self.g + rhs.g, self.b + rhs.b)
-    }
+    fn add(self, rhs: Self) -> Self { Self::new(self.r + rhs.r, self.g + rhs.g, self.b + rhs.b) }
 }
 
 impl const AddAssign for Color3 {
@@ -180,18 +175,14 @@ impl const Add<Vec3> for Color3 {
     type Output = Self;
 
     #[inline]
-    fn add(self, rhs: Vec3) -> Self {
-        Self::new(self.r + rhs.x, self.g + rhs.y, self.b + rhs.z)
-    }
+    fn add(self, rhs: Vec3) -> Self { Self::new(self.r + rhs.x, self.g + rhs.y, self.b + rhs.z) }
 }
 
 impl const Sub for Color3 {
     type Output = Self;
 
     #[inline]
-    fn sub(self, rhs: Self) -> Self {
-        Self::new(self.r - rhs.r, self.g - rhs.g, self.b - rhs.b)
-    }
+    fn sub(self, rhs: Self) -> Self { Self::new(self.r - rhs.r, self.g - rhs.g, self.b - rhs.b) }
 }
 
 /// Component-wise multiply (albedo tinting).
@@ -199,9 +190,7 @@ impl const Mul for Color3 {
     type Output = Self;
 
     #[inline]
-    fn mul(self, rhs: Self) -> Self {
-        Self::new(self.r * rhs.r, self.g * rhs.g, self.b * rhs.b)
-    }
+    fn mul(self, rhs: Self) -> Self { Self::new(self.r * rhs.r, self.g * rhs.g, self.b * rhs.b) }
 }
 
 impl const Mul<f64> for Color3 {
@@ -216,18 +205,14 @@ impl const Mul<Color3> for f64 {
     type Output = Color3;
 
     #[inline]
-    fn mul(self, rhs: Color3) -> Color3 {
-        Color3::new(self * rhs.r, self * rhs.g, self * rhs.b)
-    }
+    fn mul(self, rhs: Color3) -> Color3 { Color3::new(self * rhs.r, self * rhs.g, self * rhs.b) }
 }
 
 impl const Div for Color3 {
     type Output = Self;
 
     #[inline]
-    fn div(self, rhs: Self) -> Self {
-        Self::new(self.r / rhs.r, self.g / rhs.g, self.b / rhs.b)
-    }
+    fn div(self, rhs: Self) -> Self { Self::new(self.r / rhs.r, self.g / rhs.g, self.b / rhs.b) }
 }
 
 impl Sum for Color3 {

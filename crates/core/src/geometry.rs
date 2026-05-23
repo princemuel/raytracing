@@ -58,9 +58,7 @@ impl Vec3 {
 
     #[inline]
     #[must_use]
-    pub const fn dot(self, rhs: Self) -> f64 {
-        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
-    }
+    pub const fn dot(self, rhs: Self) -> f64 { self.x * rhs.x + self.y * rhs.y + self.z * rhs.z }
 
     #[inline]
     #[must_use]
@@ -77,9 +75,7 @@ impl Vec3 {
     /// Formula: **v** − 2(**v**·**n**)**n**
     #[inline]
     #[must_use]
-    pub const fn reflect(self, normal: Self) -> Self {
-        self - (2.0 * self.dot(normal)) * normal
-    }
+    pub const fn reflect(self, normal: Self) -> Self { self - (2.0 * self.dot(normal)) * normal }
 
     /// Refracts `self` through a surface whose normal is `normal` (unit
     /// length).
@@ -121,9 +117,7 @@ impl Vec3 {
 impl Vec3 {
     #[inline]
     #[must_use]
-    pub fn random(rng: &mut dyn Rng) -> Self {
-        Self::new(random(rng), random(rng), random(rng))
-    }
+    pub fn random(rng: &mut dyn Rng) -> Self { Self::new(random(rng), random(rng), random(rng)) }
 
     #[inline]
     #[must_use]
@@ -218,9 +212,7 @@ impl const Add for Vec3 {
     type Output = Self;
 
     #[inline]
-    fn add(self, rhs: Self) -> Self {
-        Self::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
-    }
+    fn add(self, rhs: Self) -> Self { Self::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z) }
 }
 
 impl const AddAssign for Vec3 {
@@ -236,9 +228,7 @@ impl const Sub for Vec3 {
     type Output = Self;
 
     #[inline]
-    fn sub(self, rhs: Self) -> Self {
-        Self::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
-    }
+    fn sub(self, rhs: Self) -> Self { Self::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z) }
 }
 
 impl const SubAssign for Vec3 {
@@ -255,9 +245,7 @@ impl const Mul for Vec3 {
     type Output = Self;
 
     #[inline]
-    fn mul(self, rhs: Self) -> Self {
-        Self::new(self.x * rhs.x, self.y * rhs.y, self.z * rhs.z)
-    }
+    fn mul(self, rhs: Self) -> Self { Self::new(self.x * rhs.x, self.y * rhs.y, self.z * rhs.z) }
 }
 
 impl const Mul<f64> for Vec3 {

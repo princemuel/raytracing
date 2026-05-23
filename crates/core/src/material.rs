@@ -13,12 +13,7 @@ use crate::prelude::{Color3, HitRecord, Ray, Vec3};
 /// would return `Some((Color3::WHITE, reflected_ray))`, while a pure black hole
 /// would return `None`.
 pub trait Material: Send + Sync {
-    fn scatter(
-        &self,
-        rng: &mut dyn Rng,
-        ray_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Color3, Ray)>;
+    fn scatter(&self, rng: &mut dyn Rng, ray_in: &Ray, rec: &HitRecord) -> Option<(Color3, Ray)>;
 }
 
 // ---------------------------------------------------------------------------
@@ -41,12 +36,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(
-        &self,
-        rng: &mut dyn Rng,
-        _ray_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Color3, Ray)> {
+    fn scatter(&self, rng: &mut dyn Rng, _ray_in: &Ray, rec: &HitRecord) -> Option<(Color3, Ray)> {
         // Add a random unit vector to the surface normal.
         // If that accidentally produces a near-zero direction (very rare),
         // fall back to the normal itself to avoid NaNs downstream.
@@ -55,7 +45,7 @@ impl Material for Lambertian {
             if d.near_zero() { rec.normal } else { d }
         };
 
-        Some((self.albedo, Ray::new(rec.p, direction)))
+        Some((self.albedo, Ray::new(rec.p, direction, None)))
     }
 }
 
@@ -84,19 +74,14 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(
-        &self,
-        rng: &mut dyn Rng,
-        ray_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Color3, Ray)> {
+    fn scatter(&self, rng: &mut dyn Rng, ray_in: &Ray, rec: &HitRecord) -> Option<(Color3, Ray)> {
         let reflected = ray_in.direction.reflect(rec.normal);
         // Normalise before adding fuzz so the magnitude of `reflected` doesn't
         // scale the blur radius — fuzz is specified in unit-sphere radii.
         let direction = reflected.unit() + self.fuzz * Vec3::random_unit(rng);
 
         // Rays that scatter *into* the surface (dot ≤ 0) are absorbed.
-        (direction.dot(rec.normal) > 0.0).then_some((self.albedo, Ray::new(rec.p, direction)))
+        (direction.dot(rec.normal) > 0.0).then_some((self.albedo, Ray::new(rec.p, direction, None)))
     }
 }
 
@@ -121,12 +106,7 @@ impl Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(
-        &self,
-        rng: &mut dyn Rng,
-        ray_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Color3, Ray)> {
+    fn scatter(&self, rng: &mut dyn Rng, ray_in: &Ray, rec: &HitRecord) -> Option<(Color3, Ray)> {
         // η_i / η_t: flip ratio when hitting the back face.
         let ri = if rec.is_front_face { 1.0 / self.refract_idx } else { self.refract_idx };
 
@@ -141,7 +121,7 @@ impl Material for Dielectric {
             v.refract(rec.normal, ri)
         };
 
-        Some((Color3::WHITE, Ray::new(rec.p, direction)))
+        Some((Color3::WHITE, Ray::new(rec.p, direction, None)))
     }
 }
 

@@ -19,6 +19,24 @@ name = "book1"
 version = "0.1.0"
 dependencies = [
  "engine",
+ "rand",
+ "rayon",
+ "shared",
+]
+
+[[package]]
+name = "book2"
+version = "0.1.0"
+dependencies = [
+ "engine",
+ "shared",
+]
+
+[[package]]
+name = "book3"
+version = "0.1.0"
+dependencies = [
+ "engine",
  "shared",
 ]
 
