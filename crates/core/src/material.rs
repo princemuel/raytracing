@@ -9,7 +9,9 @@ use crate::prelude::{Color3, HitRecord, Ray, Vec3};
 /// absorption.
 ///
 /// `attenuation` is the fraction of the ray's colour that is
-/// absorbed by the material; the rest is scattered. For example, a pure mirror
+/// absorbed by the material; the rest is scattered.
+///
+/// For example, a pure mirror
 /// would return `Some((Color3::WHITE, reflected_ray))`, while a pure black hole
 /// would return `None`.
 pub trait Material: Send + Sync {
@@ -36,7 +38,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, rng: &mut dyn Rng, _ray_in: &Ray, rec: &HitRecord) -> Option<(Color3, Ray)> {
+    fn scatter(&self, rng: &mut dyn Rng, ray_in: &Ray, rec: &HitRecord) -> Option<(Color3, Ray)> {
         // Add a random unit vector to the surface normal.
         // If that accidentally produces a near-zero direction (very rare),
         // fall back to the normal itself to avoid NaNs downstream.
@@ -45,7 +47,8 @@ impl Material for Lambertian {
             if d.near_zero() { rec.normal } else { d }
         };
 
-        Some((self.albedo, Ray::new(rec.p, direction, None)))
+        let scattered = Ray::new(rec.p, direction, Some(ray_in.time));
+        Some((self.albedo, scattered))
     }
 }
 
@@ -81,7 +84,8 @@ impl Material for Metal {
         let direction = reflected.unit() + self.fuzz * Vec3::random_unit(rng);
 
         // Rays that scatter *into* the surface (dot ≤ 0) are absorbed.
-        (direction.dot(rec.normal) > 0.0).then_some((self.albedo, Ray::new(rec.p, direction, None)))
+        let scattered = Ray::new(rec.p, direction, Some(ray_in.time));
+        (direction.dot(rec.normal) > 0.0).then_some((self.albedo, scattered))
     }
 }
 
@@ -94,8 +98,8 @@ impl Material for Metal {
 /// Uses Schlick's approximation for the Fresnel reflectance term.
 #[derive(Clone, Copy, Debug)]
 pub struct Dielectric {
-    /// Refractive index η (relative to the surrounding medium, typically air ≈
-    /// 1).
+    /// Refractive index `η` (relative to the surrounding medium, typically air
+    /// ≈ 1).
     pub refract_idx: f64,
 }
 
@@ -120,8 +124,8 @@ impl Material for Dielectric {
         } else {
             v.refract(rec.normal, ri)
         };
-
-        Some((Color3::WHITE, Ray::new(rec.p, direction, None)))
+        let scattered = Ray::new(rec.p, direction, Some(ray_in.time));
+        Some((Color3::WHITE, scattered))
     }
 }
 
