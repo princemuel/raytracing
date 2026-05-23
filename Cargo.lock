@@ -20,7 +20,6 @@ version = "0.1.0"
 dependencies = [
  "engine",
  "rand",
- "rayon",
  "shared",
 ]
 
@@ -29,6 +28,7 @@ name = "book2"
 version = "0.1.0"
 dependencies = [
  "engine",
+ "rand",
  "shared",
 ]
 
