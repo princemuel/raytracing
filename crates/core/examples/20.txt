@@ -1,9 +1,9 @@
 use std::io;
 use std::sync::Arc;
 
-use rtc_core::material::Lambertian;
-use rtc_core::prelude::*;
-use rtc_shared::PI;
+use engine::material::Lambertian;
+use engine::prelude::*;
+use shared::PI;
 
 fn main() -> io::Result<()> {
     #[expect(non_snake_case)]

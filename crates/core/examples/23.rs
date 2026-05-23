@@ -3,8 +3,8 @@ use core::ops::Range;
 use std::io;
 use std::sync::Arc;
 
-use rtc_core::prelude::*;
-use rtc_shared::{random, random_range};
+use engine::prelude::*;
+use shared::{random, random_range};
 const GRID: Range<i8> = -11..11;
 
 fn main() -> io::Result<()> {
@@ -64,9 +64,9 @@ fn main() -> io::Result<()> {
 
     Camera {
         aspect_ratio: 16.0 / 9.0,
-        image_width: 1200, // book's final-scene resolution
-        samples_per_pixel: 500,
-        max_depth: 50,
+        image_width: 1200,
+        samples_per_pixel: 10,
+        max_depth: 20,
         vfov: 20.0,
         lookfrom: point3(13, 2, 3),
         lookat: Point3::ZERO,

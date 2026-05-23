@@ -2,7 +2,7 @@
 use std::io;
 use std::sync::Arc;
 
-use rtc_core::prelude::*;
+use engine::prelude::*;
 
 fn main() -> io::Result<()> {
     let ground = Arc::new(Lambertian::new(color(0.8, 0.8, 0.0)));

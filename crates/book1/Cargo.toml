@@ -1,0 +1,13 @@
+[package]
+name              = "book1"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+engine.workspace = true
+shared.workspace = true
+
+[lints]
+workspace = true

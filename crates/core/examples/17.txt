@@ -1,8 +1,8 @@
 use std::io;
 use std::sync::Arc;
 
-use rtc_core::material::{Lambertian, Metal};
-use rtc_core::prelude::*;
+use engine::material::{Lambertian, Metal};
+use engine::prelude::*;
 
 fn main() -> io::Result<()> {
     let material_ground = Arc::new(Lambertian::new(color(0.8, 0.8, 0.0)));
