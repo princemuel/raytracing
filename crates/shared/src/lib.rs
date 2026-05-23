@@ -4,11 +4,6 @@ use rand::prelude::*;
 
 /// Adaptive fuzzy-equality epsilon; also the default for [`approx_eq`].
 pub const TOLERANCE: f64 = 1e-6;
-pub const PI: f64 = f64::consts::PI;
-
-// ---------------------------------------------------------------------------
-// RNG helpers
-// ---------------------------------------------------------------------------
 
 /// Returns a random real in [0,1).
 #[inline]
@@ -26,10 +21,6 @@ pub fn random_range(rng: &mut dyn Rng, min: f64, max: f64) -> f64 {
     min + (max - min) * rng.random::<f64>()
 }
 
-// ---------------------------------------------------------------------------
-// FuzzyEq trait
-// ---------------------------------------------------------------------------
-
 pub trait FuzzyEq<Rhs = Self>
 where
     Self: Sized,
@@ -46,7 +37,8 @@ where
 impl FuzzyEq for f32 {
     type Float = f32;
 
-    const TOLERANCE: f32 = 1e-6;
+    #[expect(clippy::cast_possible_truncation, clippy::as_conversions)]
+    const TOLERANCE: f32 = TOLERANCE as f32;
 
     fn fuzzy_eq(&self, other: &Self) -> bool {
         approx_eq_eps(f64::from(*self), f64::from(*other), f64::from(Self::TOLERANCE))
@@ -56,7 +48,7 @@ impl FuzzyEq for f32 {
 impl FuzzyEq for f64 {
     type Float = f64;
 
-    const TOLERANCE: f64 = 1e-6;
+    const TOLERANCE: f64 = TOLERANCE;
 
     fn fuzzy_eq(&self, other: &Self) -> bool { approx_eq_eps(*self, *other, Self::TOLERANCE) }
 }
@@ -107,10 +99,6 @@ macro_rules! assert_fuzzy_ne {
     };
 }
 
-// ---------------------------------------------------------------------------
-// Stand-alone approximate-equality functions
-// ---------------------------------------------------------------------------
-
 /// Approximate equality by absolute tolerance.
 ///
 /// Returns `true` if `|x - y| <= tolerance`.
@@ -121,7 +109,7 @@ macro_rules! assert_fuzzy_ne {
 /// - `NaN` is never equal to anything.
 #[must_use]
 pub const fn approx_eq_abs(x: f64, y: f64, tolerance: f64) -> bool {
-    debug_assert!(tolerance >= 0.0_f64);
+    debug_assert!(tolerance >= 0.0);
 
     // Handles ±0 == ±0, ±∞ == ±∞, and exact matches.
     #[expect(clippy::float_cmp)]
@@ -150,7 +138,7 @@ pub const fn approx_eq_abs(x: f64, y: f64, tolerance: f64) -> bool {
 /// - `NaN` is never equal to anything.
 #[must_use]
 pub const fn approx_eq_rel(x: f64, y: f64, tolerance: f64) -> bool {
-    debug_assert!(tolerance > 0.0_f64);
+    debug_assert!(tolerance > 0.0);
 
     // Handles ±0 == ±0, ±∞ == ±∞, and exact matches.
     #[expect(clippy::float_cmp)]
@@ -221,9 +209,9 @@ mod tests {
 
     #[test]
     fn abs_zeros() {
-        assert_fuzzy_eq!(0.0_f64, 0.0_f64);
-        assert_fuzzy_eq!(-0.0_f64, -0.0_f64);
-        assert_fuzzy_eq!(0.0_f64, -0.0_f64);
+        assert_fuzzy_eq!(0.0, 0.0);
+        assert_fuzzy_eq!(-0.0, -0.0);
+        assert_fuzzy_eq!(0.0, -0.0);
     }
 
     #[test]
@@ -242,7 +230,7 @@ mod tests {
     #[test]
     fn abs_opposite_signs_near_zero() {
         // delta = 2e-8, far smaller than any sane epsilon → equal.
-        assert_fuzzy_eq!(1e-8_f64, -1e-8_f64);
+        assert_fuzzy_eq!(1e-8, -1e-8);
         // delta = 2 * TOLERANCE, always outside tolerance → not equal.
         let t = <f64 as FuzzyEq>::TOLERANCE;
         assert_fuzzy_ne!(t, -t);
@@ -251,7 +239,7 @@ mod tests {
     #[test]
     fn abs_min_positive_near_zero() {
         // MIN_POSITIVE (~2.2e-308) is always within any reasonable tolerance.
-        assert_fuzzy_eq!(f64::MIN_POSITIVE, 0.0_f64);
+        assert_fuzzy_eq!(f64::MIN_POSITIVE, 0.0);
     }
 
     // --- approx_eq_rel ---
@@ -269,19 +257,19 @@ mod tests {
 
     #[test]
     fn rel_not_equal() {
-        assert!(!approx_eq_rel(1.0, 0.0_f64, TOLERANCE));
+        assert!(!approx_eq_rel(1.0, 0.0, TOLERANCE));
     }
 
     #[test]
     fn rel_nan_not_equal_to_zero() {
-        assert!(!approx_eq_rel(f64::NAN, 0.0_f64, TOLERANCE));
+        assert!(!approx_eq_rel(f64::NAN, 0.0, TOLERANCE));
     }
 
     #[test]
     fn rel_large_values() {
         // Values differing by half the relative tolerance → equal.
         // Values differing by twice the relative tolerance → not equal.
-        let a = 1_000_000.0_f64;
+        let a = 1_000_000.0;
         assert!(approx_eq_rel(a, a + a * TOLERANCE * 0.5, TOLERANCE));
         assert!(!approx_eq_rel(a, a + a * TOLERANCE * 2.0, TOLERANCE));
     }
@@ -292,7 +280,7 @@ mod tests {
         assert!(!approx_eq_rel(1.0, f64::INFINITY, TOLERANCE));
         assert!(!approx_eq_rel(f64::NEG_INFINITY, 1.0, TOLERANCE));
         assert!(!approx_eq_rel(1.0, f64::NEG_INFINITY, TOLERANCE));
-        assert!(!approx_eq_rel(f64::INFINITY, 0.0_f64, TOLERANCE));
+        assert!(!approx_eq_rel(f64::INFINITY, 0.0, TOLERANCE));
     }
 
     #[test]
@@ -304,9 +292,9 @@ mod tests {
 
     #[test]
     fn adaptive_exact_equality() {
-        assert_fuzzy_eq!(1.0_f64, 1.0_f64);
-        assert_fuzzy_eq!(-42.5_f64, -42.5_f64);
-        assert_fuzzy_eq!(0.0_f64, -0.0_f64);
+        assert_fuzzy_eq!(1.0, 1.0);
+        assert_fuzzy_eq!(-42.5, -42.5);
+        assert_fuzzy_eq!(0.0, -0.0);
     }
 
     #[test]
@@ -318,14 +306,14 @@ mod tests {
     #[test]
     fn adaptive_opposite_infinities_not_equal() {
         assert_fuzzy_ne!(f64::INFINITY, f64::NEG_INFINITY);
-        assert_fuzzy_ne!(f64::INFINITY, 1.0_f64);
+        assert_fuzzy_ne!(f64::INFINITY, 1.0);
     }
 
     #[test]
     fn adaptive_nan_never_equal() {
         assert_fuzzy_ne!(f64::NAN, f64::NAN);
-        assert_fuzzy_ne!(f64::NAN, 0.0_f64);
-        assert_fuzzy_ne!(0.0_f64, f64::NAN);
+        assert_fuzzy_ne!(f64::NAN, 0.0);
+        assert_fuzzy_ne!(0.0, f64::NAN);
     }
 
     #[test]
@@ -333,14 +321,14 @@ mod tests {
         // Use the trait's own TOLERANCE so the test stays valid for any epsilon.
         let t = <f64 as FuzzyEq>::TOLERANCE;
         // delta = t*0.5, within tolerance → equal.
-        assert_fuzzy_eq!(0.0_f64, t * 0.5);
+        assert_fuzzy_eq!(0.0, t * 0.5);
         // delta = t*2.0, outside tolerance → not equal.
-        assert_fuzzy_ne!(0.0_f64, t * 2.0);
+        assert_fuzzy_ne!(0.0, t * 2.0);
     }
 
     #[test]
     fn adaptive_large_values_use_relative() {
-        let a = 1_000_000.0_f64;
+        let a = 1_000_000.0;
         let t = <f64 as FuzzyEq>::TOLERANCE;
         assert!(approx_eq_rel(a, a + a * t * 0.5, t));
         assert!(!approx_eq_rel(a, a + a * t * 2.0, t));
@@ -349,17 +337,13 @@ mod tests {
     #[test]
     fn adaptive_common_rounding_error() {
         // 0.1 + 0.2 != 0.3 exactly in IEEE 754; fuzzy equality should absorb it.
-        assert_fuzzy_eq!(0.1_f64 + 0.2_f64, 0.3_f64);
+        assert_fuzzy_eq!(0.1 + 0.2, 0.3);
     }
 
     #[test]
     fn adaptive_symmetric() {
         let t = <f64 as FuzzyEq>::TOLERANCE;
-        let pairs = [
-            (0.0_f64, t * 0.5),
-            (1.0_f64, 1.0_f64 + t),
-            (1000.0_f64, 1000.0_f64 + t * 500.0_f64),
-        ];
+        let pairs = [(0.0, t * 0.5), (1.0, 1.0 + t), (1000.0, 1000.0 + t * 500.0)];
         for (a, b) in pairs {
             assert_eq!(fuzzy_eq!(a, b), fuzzy_eq!(b, a));
         }
@@ -368,7 +352,7 @@ mod tests {
     #[test]
     fn adaptive_opposite_large_values_not_equal() {
         // 1e6 and -1e6 differ by 2e6, always outside any sane tolerance.
-        assert_fuzzy_ne!(1e6_f64, -1e6_f64);
+        assert_fuzzy_ne!(1e6, -1e6);
     }
 
     // --- random_range ---
@@ -377,8 +361,8 @@ mod tests {
     fn random_range_stays_below_max() {
         let mut rng = rand::rng();
         for _ in 0..10_000 {
-            let v = random_range(&mut rng, 0.0_f64, 1.0_f64);
-            assert!((0.0_f64..1.0_f64).contains(&v), "out of [0,1): {v}");
+            let v = random_range(&mut rng, 0.0, 1.0);
+            assert!((0.0..1.0).contains(&v), "out of [0,1): {v}");
         }
     }
 }
