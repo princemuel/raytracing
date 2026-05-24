@@ -81,6 +81,15 @@ impl From<RangeInclusive<f64>> for Interval {
     fn from(r: RangeInclusive<f64>) -> Self { Self::new(*r.start(), *r.end()) }
 }
 
+impl From<(Interval, Interval)> for Interval {
+    /// Create the interval tightly enclosing the two input intervals.
+    fn from((a, b): (Interval, Interval)) -> Self {
+        let min = if a.min <= b.min { a.min } else { b.min };
+        let max = if a.max >= b.max { a.max } else { b.max };
+        Self::new(min, max)
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------

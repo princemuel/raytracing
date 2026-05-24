@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::prelude::{Interval, Material, Point3, Ray, Vec3, interval};
+use crate::prelude::{AABB, Interval, Material, Point3, Ray, Vec3, interval};
 
 /// All information about a ray–surface intersection.
 pub struct HitRecord {
@@ -31,6 +31,9 @@ impl HitRecord {
 // ---------------------------------------------------------------------------
 
 pub trait Hittable: Send + Sync {
+    /// Always returns a valid AABB. Use `AABB::EMPTY` for unbounded objects.
+    fn bounding_box(&self) -> AABB { AABB::EMPTY }
+
     /// Returns the closest hit in the interval `t`, or `None`.
     fn hit(&self, ray: &Ray, t: Interval) -> Option<HitRecord>;
 }
@@ -44,55 +47,66 @@ pub trait Hittable: Send + Sync {
 /// Stores each object behind an `Arc<dyn Hittable>` so that objects can be
 /// cheaply shared between the scene and, e.g., motion-blur or instancing.
 #[derive(Default)]
-pub struct Hittables(Vec<Arc<dyn Hittable>>);
+pub struct Hittables {
+    objects: Vec<Arc<dyn Hittable>>,
+    bbox: AABB,
+}
 
 impl Hittables {
     #[inline]
     #[must_use]
-    pub const fn new() -> Self { Self(Vec::new()) }
+    pub fn new() -> Self { Self::default() }
 
     #[inline]
-    pub fn add(&mut self, object: Arc<dyn Hittable>) { self.0.push(object); }
+    pub fn add(&mut self, object: Arc<dyn Hittable>) {
+        self.bbox = AABB::from((self.bbox, object.bounding_box()));
+        self.objects.push(object);
+    }
 
     #[inline]
-    pub fn clear(&mut self) { self.0.clear(); }
+    pub fn clear(&mut self) {
+        self.objects.clear();
+        self.bbox = AABB::EMPTY;
+    }
 
     #[inline]
     #[must_use]
-    pub const fn len(&self) -> usize { self.0.len() }
+    pub fn len(&self) -> usize { self.objects.len() }
 
     #[inline]
     #[must_use]
-    pub const fn is_empty(&self) -> bool { self.0.is_empty() }
+    pub fn is_empty(&self) -> bool { self.objects.is_empty() }
 
     #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = &dyn Hittable> { self.0.iter().map(Arc::as_ref) }
+    pub fn iter(&self) -> impl Iterator<Item = &dyn Hittable> {
+        self.objects.iter().map(Arc::as_ref)
+    }
 }
 
 impl Hittable for Hittables {
     fn hit(&self, ray: &Ray, t: Interval) -> Option<HitRecord> {
-        // Walk every object, shrinking the far-plane as we find closer hits.
-        // This is O(n) but sufficient for Book 1; Book 2 adds a BVH.
-        self.0
-            .iter()
-            .fold((t.max, None), |(closest, best), obj| {
-                if let Some(record) = obj.hit(ray, interval(t.min, closest)) {
-                    (record.t, Some(record))
-                } else {
-                    (closest, best)
-                }
-            })
-            .1
+        let (_, record) = self.objects.iter().fold((t.max, None), |(closest, best), obj| match obj
+            .hit(ray, interval(t.min, closest))
+        {
+            Some(rec) => (rec.t, Some(rec)),
+            None => (closest, best),
+        });
+
+        record
     }
+
+    fn bounding_box(&self) -> AABB { self.bbox } // AABB is Copy — free
 }
 
 // ---------------------------------------------------------------------------
 // Blanket impl so Arc<dyn Hittable> is itself Hittable
 // ---------------------------------------------------------------------------
-
 impl Hittable for Arc<dyn Hittable> {
     #[inline]
     fn hit(&self, ray: &Ray, t: Interval) -> Option<HitRecord> { self.as_ref().hit(ray, t) }
+
+    #[inline]
+    fn bounding_box(&self) -> AABB { self.as_ref().bounding_box() }
 }
 
 // ---------------------------------------------------------------------------
@@ -101,14 +115,17 @@ impl Hittable for Arc<dyn Hittable> {
 
 impl FromIterator<Arc<dyn Hittable>> for Hittables {
     fn from_iter<I: IntoIterator<Item = Arc<dyn Hittable>>>(iter: I) -> Self {
-        Self(iter.into_iter().collect())
+        Self { objects: iter.into_iter().collect(), bbox: AABB::EMPTY }
     }
 }
 
 #[expect(clippy::as_conversions, trivial_casts)]
 impl<T: Hittable + 'static> From<Vec<T>> for Hittables {
     fn from(v: Vec<T>) -> Self {
-        Self(v.into_iter().map(|h| Arc::new(h) as Arc<dyn Hittable>).collect())
+        Self {
+            objects: v.into_iter().map(|h| Arc::new(h) as Arc<dyn Hittable>).collect(),
+            bbox: AABB::EMPTY,
+        }
     }
 }
 
@@ -116,7 +133,7 @@ impl IntoIterator for Hittables {
     type IntoIter = std::vec::IntoIter<Self::Item>;
     type Item = Arc<dyn Hittable>;
 
-    fn into_iter(self) -> Self::IntoIter { self.0.into_iter() }
+    fn into_iter(self) -> Self::IntoIter { self.objects.into_iter() }
 }
 
 impl<'a> IntoIterator for &'a Hittables {

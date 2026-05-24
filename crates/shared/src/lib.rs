@@ -40,6 +40,7 @@ impl FuzzyEq for f32 {
     #[expect(clippy::cast_possible_truncation, clippy::as_conversions)]
     const TOLERANCE: f32 = TOLERANCE as f32;
 
+    #[inline]
     fn fuzzy_eq(&self, other: &Self) -> bool {
         approx_eq_eps(f64::from(*self), f64::from(*other), f64::from(Self::TOLERANCE))
     }
@@ -50,6 +51,7 @@ impl FuzzyEq for f64 {
 
     const TOLERANCE: f64 = TOLERANCE;
 
+    #[inline]
     fn fuzzy_eq(&self, other: &Self) -> bool { approx_eq_eps(*self, *other, Self::TOLERANCE) }
 }
 

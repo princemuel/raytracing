@@ -88,7 +88,6 @@ str_to_string                        = "deny"
 string_add                           = "deny"
 string_lit_chars_any                 = "deny"
 tests-outside-test-module            = "deny"
-todo                                 = "warn"
 unneeded_field_pattern               = "warn"
 unseparated_literal_suffix           = "allow"
 unused_trait_names                   = "warn"
@@ -129,6 +128,16 @@ unused-import-braces          = "deny"
 unused-lifetimes              = "warn"
 unused-qualifications         = "deny"
 # unused-results                                = "warn"
+
+[profile.bench]
+opt-level     = 3
+debug         = false
+lto           = true
+codegen-units = 1
+
+[profile.dev]
+opt-level = 1
+debug     = true
 
 [profile.release]
 opt-level     = 3

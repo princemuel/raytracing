@@ -3,7 +3,7 @@
 
 use shared::TOLERANCE;
 
-use crate::prelude::{Axis, HitRecord, Hittable, Interval, Point3, Ray, interval};
+use crate::prelude::{Axis, Interval, Point3, Ray, interval};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct AABB {
@@ -37,6 +37,18 @@ impl AABB {
 }
 
 impl AABB {
+    /// Returns the index of the longest axis of the bounding box.
+    #[must_use]
+    pub const fn longest_axis(&self) -> Axis {
+        if self.x.size() >= self.y.size() && self.x.size() >= self.z.size() {
+            Axis::X
+        } else if self.y.size() >= self.z.size() {
+            Axis::Y
+        } else {
+            Axis::Z
+        }
+    }
+
     /// Adjusts [`AABB`] so that no side is narrower than some delta, padding it
     /// if necessary.
     const fn pad_to_minimum(x: Interval, y: Interval, z: Interval) -> Self {
@@ -47,31 +59,32 @@ impl AABB {
         let z = if z.size() < DELTA { z.expand(DELTA) } else { z };
         Self { x, y, z }
     }
-}
 
-impl Hittable for AABB {
-    fn hit(&self, ray: &Ray, t: Interval) -> Option<HitRecord> {
-        let axis = Axis::X;
+    #[must_use]
+    pub fn hit(&self, ray: &Ray, mut ray_t: Interval) -> bool {
+        for axis in [Axis::X, Axis::Y, Axis::Z] {
+            let ax = self.get(axis);
+            let adinv = ray.direction.get(axis).recip();
 
-        let ax = self.get(axis);
-        let adinv = ray.direction.get(axis).recip();
+            let (t0, t1) = {
+                let t0 = (ax.min - ray.origin.get(axis)) * adinv;
+                let t1 = (ax.max - ray.origin.get(axis)) * adinv;
+                if adinv < 0.0 { (t1, t0) } else { (t0, t1) }
+            };
 
-        let t0 = (ax.min - ray.origin.get(axis)) * adinv;
-        let t1 = (ax.max - ray.origin.get(axis)) * adinv;
+            if t0 > ray_t.min {
+                ray_t.min = t0;
+            }
 
-        if t.max <= t.min {
-            return None;
+            if t1 < ray_t.max {
+                ray_t.max = t1;
+            }
+
+            if ray_t.max <= ray_t.min {
+                return false;
+            }
         }
-
-        let record = HitRecord {
-            p: todo!(),
-            normal: todo!(),
-            t: todo!(),
-            material: todo!(),
-            is_front_face: todo!(),
-        };
-
-        Some(record)
+        true
     }
 }
 
@@ -83,5 +96,15 @@ impl From<(Point3, Point3)> for AABB {
         let y = if a.y <= b.y { interval(a.y, b.y) } else { interval(b.y, a.y) };
         let z = if a.z <= b.z { interval(a.z, b.z) } else { interval(b.z, a.z) };
         Self::pad_to_minimum(x, y, z)
+    }
+}
+
+impl From<(AABB, AABB)> for AABB {
+    /// Create the AABB tightly enclosing the two input aAABBs.
+    fn from((box0, box1): (AABB, AABB)) -> Self {
+        let x = Interval::from((box0.x, box1.x));
+        let y = Interval::from((box0.y, box1.y));
+        let z = Interval::from((box0.z, box1.z));
+        Self { x, y, z }
     }
 }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::prelude::{HitRecord, Hittable, Interval, Material, Point3, Ray, Vec3};
+use crate::prelude::{AABB, HitRecord, Hittable, Interval, Material, Point3, Ray, Vec3};
 
 /// A sphere — the only primitive in Book 1.
 pub struct Sphere {
@@ -30,6 +30,15 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
+    fn bounding_box(&self) -> AABB {
+        let rvec = Vec3::splat(self.radius);
+        // Enclose both the start and end positions (handles moving spheres;
+        // for stationary ones center_b == center_a so box0 == box1).
+        let box0 = AABB::from((self.center.origin - rvec, self.center.origin + rvec));
+        let box1 = AABB::from((self.center.at(1.0) - rvec, self.center.at(1.0) + rvec));
+        AABB::from((box0, box1))
+    }
+
     fn hit(&self, ray: &Ray, t: Interval) -> Option<HitRecord> {
         let center = self.center.at(ray.time);
         // Vector from ray origin to sphere centre: **oc** = C − O

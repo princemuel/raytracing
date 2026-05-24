@@ -1,5 +1,5 @@
 pub use crate::aabb::AABB;
-pub use crate::axis::Axis;
+pub use crate::axis::{Axis, Channel};
 pub use crate::camera::Camera;
 pub use crate::color::{Color3, color};
 pub use crate::geometry::{Point3, Vec3, point3, vec3};

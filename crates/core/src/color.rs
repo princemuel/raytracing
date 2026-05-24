@@ -5,7 +5,7 @@ use core::ops::{Add, AddAssign, Div, Mul, Sub};
 use rand::prelude::*;
 use shared::{FuzzyEq as _, random, random_range};
 
-use crate::prelude::{Axis, Interval, Vec3};
+use crate::prelude::{Channel, Interval, Vec3};
 
 #[inline]
 #[must_use]
@@ -39,11 +39,11 @@ impl Color3 {
     pub const fn splat(v: f64) -> Self { Self { r: v, g: v, b: v } }
 
     #[must_use]
-    pub const fn get(self, axis: Axis) -> f64 {
-        match axis {
-            Axis::X => self.r,
-            Axis::Y => self.g,
-            Axis::Z => self.b,
+    pub const fn get(self, channel: Channel) -> f64 {
+        match channel {
+            Channel::R => self.r,
+            Channel::G => self.g,
+            Channel::B => self.b,
         }
     }
 }
@@ -163,14 +163,14 @@ impl core::str::FromStr for Color3 {
 // Arithmetic operators
 // ---------------------------------------------------------------------------
 
-impl const Add for Color3 {
+const impl Add for Color3 {
     type Output = Self;
 
     #[inline]
     fn add(self, rhs: Self) -> Self { Self::new(self.r + rhs.r, self.g + rhs.g, self.b + rhs.b) }
 }
 
-impl const AddAssign for Color3 {
+const impl AddAssign for Color3 {
     #[inline]
     fn add_assign(&mut self, rhs: Self) {
         self.r += rhs.r;
@@ -180,14 +180,14 @@ impl const AddAssign for Color3 {
 }
 
 /// Map a surface normal (Vec3 in [−1, 1]) to a colour.
-impl const Add<Vec3> for Color3 {
+const impl Add<Vec3> for Color3 {
     type Output = Self;
 
     #[inline]
     fn add(self, rhs: Vec3) -> Self { Self::new(self.r + rhs.x, self.g + rhs.y, self.b + rhs.z) }
 }
 
-impl const Sub for Color3 {
+const impl Sub for Color3 {
     type Output = Self;
 
     #[inline]
@@ -195,14 +195,14 @@ impl const Sub for Color3 {
 }
 
 /// Component-wise multiply (albedo tinting).
-impl const Mul for Color3 {
+const impl Mul for Color3 {
     type Output = Self;
 
     #[inline]
     fn mul(self, rhs: Self) -> Self { Self::new(self.r * rhs.r, self.g * rhs.g, self.b * rhs.b) }
 }
 
-impl const Mul<f64> for Color3 {
+const impl Mul<f64> for Color3 {
     type Output = Self;
 
     #[inline]
@@ -210,14 +210,14 @@ impl const Mul<f64> for Color3 {
 }
 
 /// Scalar on the left: `0.5 * color`.
-impl const Mul<Color3> for f64 {
+const impl Mul<Color3> for f64 {
     type Output = Color3;
 
     #[inline]
     fn mul(self, rhs: Color3) -> Color3 { Color3::new(self * rhs.r, self * rhs.g, self * rhs.b) }
 }
 
-impl const Div for Color3 {
+const impl Div for Color3 {
     type Output = Self;
 
     #[inline]
